@@ -1,0 +1,155 @@
+.deep-chat-page {
+  @panel-height: calc(100vh - 180px);
+
+  .deep-chat-card {
+    border: 1px solid #e6f0ff;
+    border-radius: 10px;
+    box-shadow: 0 4px 14px rgba(22, 119, 255, 0.08);
+    height: @panel-height;
+
+    .ant-card-body {
+      height: calc(100% - 56px);
+      display: flex;
+      flex-direction: column;
+    }
+  }
+
+  .cockpit-header {
+    background: linear-gradient(90deg, rgba(22, 119, 255, 0.12), rgba(22, 119, 255, 0.04));
+    border: 1px solid #d6e4ff;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+  }
+
+  .message-viewport {
+    height: calc(@panel-height - 220px);
+    min-height: 520px;
+    overflow-y: auto;
+    padding-right: 4px;
+    margin-bottom: 10px;
+  }
+
+  .session-group-block {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    margin-bottom: 6px;
+  }
+
+  .session-group-scroll {
+    margin-top: 8px;
+    height: calc((@panel-height - 230px) / 2);
+    min-height: 180px;
+    overflow-y: auto;
+    padding-right: 4px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .prompt-panel-scroll {
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .input-sticky-area {
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    padding-top: 6px;
+    border-top: 1px solid #f0f0f0;
+  }
+
+  .deep-chat-input-compact {
+    width: 100%;
+    display: flex;
+    align-items: stretch;
+
+    .ant-input-textarea {
+      flex: 1;
+    }
+
+    .ant-input {
+      min-height: 54px;
+      border-radius: 8px 0 0 8px;
+    }
+  }
+
+  .deep-chat-send-btn {
+    min-height: 54px;
+    height: auto;
+    border-radius: 0 8px 8px 0;
+    padding: 0 18px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .session-item {
+    cursor: pointer;
+    border-radius: 8px;
+    border-left: 3px solid transparent;
+    padding: 8px 10px;
+  }
+
+  .session-item-active {
+    background: rgba(22, 119, 255, 0.1);
+    border-left-color: #1677ff;
+  }
+
+  .msg-card-assistant {
+    background: #fafcff;
+    border: 1px solid #e6f4ff;
+  }
+
+  .msg-card-user {
+    background: #f0f5ff;
+    border: 1px solid #d6e4ff;
+  }
+
+  .action-item-card {
+    border: 1px solid #d6e4ff;
+    border-radius: 8px;
+  }
+
+  .action-item-row {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .action-priority-bar {
+    width: 4px;
+    border-radius: 4px;
+    min-height: 68px;
+  }
+
+  .prompt-group-card {
+    background: #fafcff;
+  }
+
+  .prompt-item-card {
+    background: #fff;
+    border: 1px solid #e6f4ff;
+  }
+
+  @media (max-width: 1199px) {
+    .deep-chat-card {
+      height: auto;
+
+      .ant-card-body {
+        height: auto;
+        display: block;
+      }
+    }
+
+    .message-viewport {
+      height: auto;
+      max-height: 540px;
+      min-height: 460px;
+    }
+
+    .session-group-scroll {
+      height: 220px;
+    }
+  }
+}

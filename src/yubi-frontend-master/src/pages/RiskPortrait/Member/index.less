@@ -1,0 +1,81 @@
+.rp-member {
+  max-width: 1140px;
+  margin: 0;
+  margin-right: auto;
+  text-align: left;
+}
+
+.rp-member-hero {
+  margin-bottom: 4px;
+}
+
+.rp-member-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.88);
+  margin: 0 0 12px;
+  line-height: 1.4;
+
+  &::before {
+    content: '';
+    display: block;
+    width: 3px;
+    height: 14px;
+    border-radius: 2px;
+    background: #1677ff;
+  }
+}
+
+.rp-member-toolbar {
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  padding: 16px 18px 4px;
+  margin-bottom: 12px;
+}
+
+.rp-member-table-wrap {
+  margin-bottom: 4px;
+
+  :global(.ant-table) {
+    font-size: 13px;
+  }
+
+  :global(.ant-table-thead > tr > th),
+  :global(.ant-table-tbody > tr > td) {
+    text-align: left !important;
+  }
+
+  :global(.ant-pagination) {
+    margin-bottom: 0 !important;
+    justify-content: flex-start !important;
+  }
+
+  :global(.ant-pagination.ant-table-pagination) {
+    justify-content: flex-start !important;
+  }
+}
+
+.rp-member-detail {
+  margin-top: 4px;
+
+  :global(.ant-table-thead > tr > th),
+  :global(.ant-table-tbody > tr > td) {
+    text-align: left !important;
+  }
+}
+
+
+.rp-member-precise {
+  margin-top: 8px;
+  padding-top: 20px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.rp-member-precise-hint {
+  margin-bottom: 12px;
+  font-size: 13px;
+}

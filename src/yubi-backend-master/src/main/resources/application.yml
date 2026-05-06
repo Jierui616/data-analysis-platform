@@ -1,0 +1,138 @@
+spring:
+  application:
+    name: yubi-backend
+  # 关闭启动横幅（不再打印 classpath 内 banner.txt / Spring 默认 ASCII 图）
+  main:
+    banner-mode: off
+  # 默认 dev 环境
+  profiles:
+    active: dev
+  # 支持 swagger3
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  # session 配置
+  session:
+    # todo 取消注释开启分布式 session（须先配置 Redis）
+    # store-type: redis
+    # 30 天过期
+    timeout: 2592000
+  # 数据库配置
+  # todo 需替换配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/yubi
+    username: root
+    password: 916108
+    # 风险画像留痕表 risk_portrait_hit_log：执行一次 sql/risk_portrait_schema.sql（库名与 url 一致）。
+    # 同文件含会员导入表 risk_portrait_member_*、匿名分桶 risk_portrait_anonymous_cluster；开关见 risk-portrait.*（文件末尾）。
+  # Redis 配置
+  # todo 需替换配置，然后取消注释
+  redis:
+    database: 1
+    host: localhost
+    port: 6379
+    timeout: 5000
+  # Elasticsearch 配置
+  # todo 需替换配置，然后取消注释
+#  elasticsearch:
+#    uris: http://localhost:9200
+#    username: root
+#    password: 123456
+  # 文件上传
+  servlet:
+    multipart:
+      # 大小限制
+      max-file-size: 10MB
+  rabbitmq:
+    host: localhost
+    port: 5672
+    password: guest
+    username: guest
+server:
+  address: 0.0.0.0
+  # 与前端 dev 代理（proxy.ts）、OpenAPI 地址一致；如需改端口请同步修改 src/yubi-frontend-master/config/proxy.ts
+  port: 18080
+  servlet:
+    context-path: /api
+    # cookie 30 天过期
+    session:
+      cookie:
+        max-age: 2592000
+# 风险画像：member-demo-mode / anonymous-demo-mode=true 使用演示兜底；导入后改为 false，仅从对应 risk_portrait_* 表读取（无兜底）。
+risk-portrait:
+  member-demo-mode: true
+  anonymous-demo-mode: true
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: false
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: isDelete # 全局逻辑删除的实体字段名
+      logic-delete-value: 1 # 逻辑已删除值（默认为 1）
+      logic-not-delete-value: 0 # 逻辑未删除值（默认为 0）
+# 微信相关
+wx:
+  # 微信公众平台
+  # todo 需替换配置
+  mp:
+    token: xxx
+    aesKey: xxx
+    appId: xxx
+    secret: xxx
+    config-storage:
+      http-client-type: HttpClient
+      key-prefix: wx
+      redis:
+        host: 127.0.0.1
+        port: 6379
+      type: Memory
+  # 微信开放平台
+  # todo 需替换配置
+  open:
+    appId: xxx
+    appSecret: xxx
+# 对象存储
+# todo 需替换配置
+cos:
+  client:
+    accessKey: xxx
+    secretKey: xxx
+    region: xxx
+    bucket: xxx
+# 阿里云百炼 DashScope（OpenAI 兼容接口）
+# 控制台：https://bailian.console.aliyun.com/  → 创建 API Key
+# 若报错「免费额度已用尽 / AllocationQuota.FreeTierOnly」：在控制台关闭「仅限免费额度」或为账户开通按量付费
+dashscope:
+  # 注意：冒号后面必须有空格，例如 api-key: sk-xxxx（写成 api-key:sk-xxxx 会整份 yml 解析失败）
+  api-key: sk-d737d4f2cb744bbd85265efe26b123ec
+  # 模型名以百炼控制台「OpenAI 兼容」文档为准，可换：qwen-turbo / qwen-plus / qwen-max / qwen-long / qwen2.5-7b-instruct 等
+  model: qwen2.5-vl-72b-instruct
+# qwen3-32b qwen-max-2025-01-25 qwen-plus-2025-07-28 qwen2.5-vl-72b-instruct qwen-plus-latest
+
+# BI Center：overview 结果缓存（命中可跳过查库 + CSV 解析 + 计算）
+bicenter:
+  cache:
+    enabled: true
+    ttl-seconds: 60
+    # 预解析 Table 缓存（按 chartId 共享给三种 overview 视角），默认与 ttl-seconds 一致
+    table-ttl-seconds: 60
+    # 防止 Redis 存超大 JSON：chartData 字符数超过阈值则不缓存 Table，仅走原始解析
+    max-table-bytes: 300000
+  ai:
+    # 运行分析（/ai/run）模型 ID。0 表示使用默认模型配置
+    run:
+      model-id: 0
+      # 可选：指定百炼模型名；为空则沿用 dashscope.model
+      dashscope-model:
+    # 深度对话（/ai/deep-chat）模型 ID。可与 run 独立配置
+    deep-chat:
+      model-id: 0
+      # 指定深度对话使用的百炼模型（与智能分析分开）
+      dashscope-model: qwen-plus-latest
+      # qwen-max qwen3.6-plus  qwen-plus-latest
+      # 指定模型失败时，是否回退默认模型
+      fallback-to-default: false
+      session-ttl-seconds: 2592000

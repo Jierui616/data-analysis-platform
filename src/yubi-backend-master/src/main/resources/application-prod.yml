@@ -1,0 +1,33 @@
+server:
+  port: 8101
+spring:
+  # 数据库配置
+  # todo 需替换配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/my_db
+    username: root
+    password: 123456
+  # Redis 配置
+  # todo 需替换配置
+  redis:
+    database: 1
+    host: localhost
+    port: 6379
+    timeout: 5000
+    password: 123456
+  # Elasticsearch 配置
+  # todo 需替换配置
+  elasticsearch:
+    uris: http://localhost:9200
+    username: root
+    password: 123456
+# 生产环境关闭内置演示样本：会员走 risk_portrait_member_*，匿名分桶走 risk_portrait_anonymous_cluster
+risk-portrait:
+  member-demo-mode: false
+  anonymous-demo-mode: false
+
+mybatis-plus:
+  configuration:
+    # 生产环境关闭日志
+    log-impl: ''

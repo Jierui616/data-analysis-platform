@@ -1,0 +1,36 @@
+export default [
+  { path: '/user', layout: false, routes: [{ path: '/user/login', component: './User/Login' }] },
+  { path: '/', redirect: '/add_chart' },
+  { path: '/add_chart', name: '智能分析（实时）', icon: 'barChart', component: './AddChart' },
+  { path: '/add_chart_async', name: '智能分析（异步）', icon: 'barChart', component: './AddChartAsync' },
+  { path: '/deep_chat', name: '深度对话', icon: 'message', component: './DeepChat' },
+  { path: '/chart_result/:id', component: './ChartResult' },
+  { path: '/my_chart', name: '图表管理与结果回看', icon: 'pieChart', component: './MyChart' },
+  { path: '/lineage_center', name: '血缘追踪中心', icon: 'apartment', component: './LineageCenter' },
+  { path: '/data_import', name: '成本与排班导入', icon: 'upload', component: './DataImportCenter' },
+  { path: '/bi_bigscreen', name: '经营指挥大屏', icon: 'dashboard', component: './BIOperationScreen' },
+  {
+    path: '/risk_portrait',
+    name: '风险与信用画像',
+    icon: 'idcard',
+    routes: [
+      { path: '/risk_portrait', redirect: '/risk_portrait/overview' },
+      { path: '/risk_portrait/overview', name: '画像总览', component: './RiskPortrait/Overview' },
+      { path: '/risk_portrait/store', name: '门店/加盟商画像', component: './RiskPortrait/Store' },
+      { path: '/risk_portrait/member', name: '会员画像', component: './RiskPortrait/Member' },
+      { path: '/risk_portrait/anonymous', name: '匿名用户画像', component: './RiskPortrait/Anonymous' },
+      { path: '/risk_portrait/rules', name: '策略与规则', component: './RiskPortrait/Rules' },
+      { path: '/risk_portrait/audit', name: '命中与留痕', component: './RiskPortrait/Audit' },
+    ],
+  },
+  {
+    path: '/admin',
+    icon: 'crown',
+    access: 'canAdmin',
+    routes: [
+      { path: '/admin', name: '管理页面', redirect: '/admin/sub-page' },
+      { path: '/admin/sub-page', name: '管理页面2', component: './Admin' },
+    ],
+  },
+  { path: '*', layout: false, component: './404' },
+];
