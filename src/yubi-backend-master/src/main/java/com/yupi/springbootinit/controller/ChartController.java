@@ -35,6 +35,7 @@ import com.yupi.springbootinit.service.UserService;
 import com.yupi.springbootinit.utils.BiAiResultParser;
 import com.yupi.springbootinit.utils.BiPromptUtils;
 import com.yupi.springbootinit.utils.ExcelUtils;
+import com.yupi.springbootinit.utils.LineageRecordMetaHelper;
 import com.yupi.springbootinit.utils.SqlUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
@@ -1043,89 +1044,13 @@ public class ChartController {
         req.setLogicRef(logicRef);
         List<String> datasetsIn = extractDatasets(input, logicRef);
         List<String> datasetsOut = extractDatasets(output, logicRef);
-        // MVP：明确写入“本次分析使用的数据集”，避免图谱退化为 text_parse / medium。
-        ensureChartInputDataset(datasetsIn, chartId);
-        // MVP+：为关键步骤补齐结构化产出数据集，让图谱更像真实资产链路（并提升可信度）。
-        ensureDerivedOutputDatasets(datasetsOut, chartId, eventType);
+        LineageRecordMetaHelper.enrichDatasetsForChart(datasetsIn, datasetsOut, chartId, eventType);
         req.setDatasetsIn(datasetsIn);
         req.setDatasetsOut(datasetsOut);
-        req.setEventMetaJson(buildEventMetaJson(logicRef, req.getDatasetsIn(), req.getDatasetsOut()));
+        req.setEventMetaJson(LineageRecordMetaHelper.buildEventMetaJson(logicRef, req.getDatasetsIn(), req.getDatasetsOut()));
         req.setStatus(status);
         req.setOperatorId(operatorId);
         lineageService.recordEvent(req);
-    }
-
-    /**
-     * 约定：智能分析上传数据会沉淀为数据集 chart_input_<chartId>。
-     * 将其写入 datasetsIn，可让血缘边从 text_parse -> event_meta，可信度提升到 high。
-     */
-    private void ensureChartInputDataset(List<String> datasetsIn, Long chartId) {
-        if (datasetsIn == null || chartId == null || chartId <= 0) {
-            return;
-        }
-        String datasetName = ("chart_input_" + chartId).toLowerCase();
-        boolean exists = false;
-        for (String d : datasetsIn) {
-            if (d != null && datasetName.equalsIgnoreCase(d.trim())) {
-                exists = true;
-                break;
-            }
-        }
-        if (!exists) {
-            datasetsIn.add(datasetName);
-        }
-    }
-
-    /**
-     * 补齐关键步骤的“结构化产出数据集”（datasetsOut）。
-     * 这些名字是逻辑资产标识，用于血缘展示与影响分析，不影响核心业务。
-     */
-    private void ensureDerivedOutputDatasets(List<String> datasetsOut, Long chartId, String eventType) {
-        if (datasetsOut == null || chartId == null || chartId <= 0 || StringUtils.isBlank(eventType)) {
-            return;
-        }
-        String type = eventType.trim();
-        // 统一约定为小写，便于后端图谱清洗与比较
-        if (LineageConstant.EVENT_SOURCE_INGESTED.equals(type)) {
-            addDatasetIfAbsent(datasetsOut, "chart_input_" + chartId);
-            return;
-        }
-        if (LineageConstant.EVENT_DATA_CLEANED.equals(type)) {
-            addDatasetIfAbsent(datasetsOut, "chart_clean_" + chartId);
-            return;
-        }
-        if (LineageConstant.EVENT_METRIC_COMPUTED.equals(type)) {
-            addDatasetIfAbsent(datasetsOut, "chart_metric_" + chartId);
-            return;
-        }
-        if (LineageConstant.EVENT_CHART_RENDERED.equals(type)) {
-            addDatasetIfAbsent(datasetsOut, "chart_option_" + chartId);
-            return;
-        }
-        if (LineageConstant.EVENT_AI_INTERPRETED.equals(type)) {
-            addDatasetIfAbsent(datasetsOut, "chart_ai_result_" + chartId);
-        }
-    }
-
-    private void addDatasetIfAbsent(List<String> datasets, String datasetName) {
-        if (datasets == null || StringUtils.isBlank(datasetName)) {
-            return;
-        }
-        String target = datasetName.trim().toLowerCase();
-        for (String d : datasets) {
-            if (d != null && target.equalsIgnoreCase(d.trim())) {
-                return;
-            }
-        }
-        datasets.add(target);
-    }
-
-    private String buildEventMetaJson(String logicRef, List<String> datasetsIn, List<String> datasetsOut) {
-        Map<String, Object> meta = new LinkedHashMap<>();
-        meta.put("logicRef", defaultIfBlank(logicRef, "default"));
-        meta.put("datasetsIn", datasetsIn == null ? Collections.emptyList() : datasetsIn);
-        meta.put("datasetsOut", datasetsOut == null ? Collections.emptyList() : datasetsOut);
-        return new Gson().toJson(meta);
     }
 
     private List<String> extractDatasets(String text, String logicRef) {

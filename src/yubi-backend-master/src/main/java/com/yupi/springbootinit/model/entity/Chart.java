@@ -35,6 +35,11 @@ public class Chart implements Serializable {
     private String chartData;
 
     /**
+     * 图表原始 CSV 外置对象引用（JSON，见 ChartDataRef）；非空时 chartData 可为空，由对象存储加载。
+     */
+    private String chartDataRef;
+
+    /**
      * 图表类型
      */
     private String chartType;

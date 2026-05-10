@@ -26,6 +26,7 @@ import com.yupi.springbootinit.model.entity.restaurant.StoreUserRole;
 import com.yupi.springbootinit.service.RestaurantBiService;
 import com.yupi.springbootinit.service.ChartService;
 import com.yupi.springbootinit.service.UserService;
+import com.yupi.springbootinit.service.storage.ChartDataResolverService;
 import com.yupi.springbootinit.utils.CsvTableUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -87,6 +88,9 @@ public class RestaurantBiServiceImpl implements RestaurantBiService {
 
     @Resource
     private ChartService chartService;
+
+    @Resource
+    private ChartDataResolverService chartDataResolverService;
 
     @Override
     public Map<String, Object> getHqOverview(User loginUser, Map<String, Object> requestBody) {
@@ -566,7 +570,7 @@ public class RestaurantBiServiceImpl implements RestaurantBiService {
         if (StringUtils.isBlank(chartData) && chartId != null && chartId > 0) {
             Chart chart = chartService.getById(chartId);
             if (chart != null) {
-                chartData = chart.getChartData();
+                chartData = chartDataResolverService.resolveCsv(chart);
             }
         }
         CsvTableUtils.Table table = CsvTableUtils.parse(chartData);

@@ -6,6 +6,7 @@ import {
   Card,
   Col,
   Descriptions,
+  Divider,
   Input,
   List,
   Result,
@@ -19,6 +20,7 @@ import {
   Typography,
   message,
 } from 'antd';
+import ReactECharts from 'echarts-for-react';
 import React, { useEffect, useMemo, useState } from 'react';
 
 type LineageEvent = {
@@ -315,6 +317,72 @@ const LineageCenter: React.FC = () => {
     return grouped;
   }, [impactItemsWithPriority]);
 
+  /** 资产血缘力导向图（与物化/推导接口字段一致） */
+  const lineageGraphChartOption = useMemo(() => {
+    const nodes = graph?.nodes || [];
+    const edges = graph?.edges || [];
+    if (!nodes.length && !edges.length) {
+      return null;
+    }
+    const categoryOrder = ['dataset', 'task', 'metric', 'chart', 'unknown'];
+    const categories = categoryOrder.map((name) => ({ name }));
+    const catIndex = (t?: string) => {
+      const i = categoryOrder.indexOf(t || 'unknown');
+      return i >= 0 ? i : categoryOrder.length - 1;
+    };
+    const nodeKeySet = new Set<string>();
+    nodes.forEach((n) => {
+      if (n?.nodeKey) nodeKeySet.add(n.nodeKey);
+    });
+    edges.forEach((e) => {
+      if (e?.fromNodeKey) nodeKeySet.add(e.fromNodeKey);
+      if (e?.toNodeKey) nodeKeySet.add(e.toNodeKey);
+    });
+    const data = Array.from(nodeKeySet).map((key) => {
+      const n = nodes.find((x) => x.nodeKey === key);
+      const label = n?.name || key;
+      const short = label.length > 18 ? `${label.slice(0, 16)}…` : label;
+      return {
+        id: key,
+        name: short,
+        category: catIndex(n?.nodeType),
+        symbolSize: n?.nodeType === 'chart' ? 40 : n?.nodeType === 'dataset' ? 32 : 26,
+        tooltip: {
+          formatter: `${n?.nodeType || 'unknown'}<br/>${key}`,
+        },
+      };
+    });
+    const links = edges.map((e) => ({
+      source: e.fromNodeKey,
+      target: e.toNodeKey,
+      value: e.edgeType,
+      lineStyle: {
+        color: e.confidence === 'high' ? '#52c41a' : e.confidence === 'low' ? '#ff4d4f' : '#faad14',
+        width: 1.2,
+      },
+    }));
+    return {
+      tooltip: {},
+      legend: { data: categories.map((c) => c.name), bottom: 0 },
+      series: [
+        {
+          type: 'graph',
+          layout: 'force',
+          roam: true,
+          draggable: true,
+          categories,
+          data,
+          links,
+          edgeSymbol: ['none', 'arrow'],
+          edgeSymbolSize: [0, 10],
+          label: { show: true, position: 'right', fontSize: 10 },
+          force: { repulsion: 320, edgeLength: [90, 160], gravity: 0.08 },
+          emphasis: { focus: 'adjacency', lineStyle: { width: 3 } },
+        },
+      ],
+    };
+  }, [graph]);
+
   return (
     <div>
       <Typography.Title level={4}>分析可信度与问题追踪中心</Typography.Title>
@@ -453,9 +521,20 @@ const LineageCenter: React.FC = () => {
                   children: (
                     <Card>
                       <Descriptions size="small" column={2} style={{ marginBottom: 8 }}>
-                        <Descriptions.Item label="处理步骤">{graph?.nodes?.length || 0}</Descriptions.Item>
-                        <Descriptions.Item label="数据关系">{graph?.edges?.length || 0}</Descriptions.Item>
+                        <Descriptions.Item label="节点数">{graph?.nodes?.length || 0}</Descriptions.Item>
+                        <Descriptions.Item label="关系边数">{graph?.edges?.length || 0}</Descriptions.Item>
                       </Descriptions>
+                      {lineageGraphChartOption ? (
+                        <>
+                          <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
+                            力导向图：可缩放、拖拽节点；边颜色表示可信度（绿高 / 橙中 / 红低）。
+                          </Typography.Paragraph>
+                          <ReactECharts option={lineageGraphChartOption} style={{ height: 440, width: '100%' }} />
+                          <Divider plain>关系明细</Divider>
+                        </>
+                      ) : (
+                        <Typography.Paragraph type="secondary">暂无图谱数据，请先完成分析并加载血缘。</Typography.Paragraph>
+                      )}
                       <List
                         size="small"
                         dataSource={graph?.edges || []}

@@ -27,6 +27,7 @@ create table if not exists chart
     goal				 text  null comment '分析目标',
     `name`               varchar(128) null comment '图表名称',
     chartData    text  null comment '图表数据',
+    chartDataRef text  null comment '图表原始数据外置对象引用 JSON（storage.chartData 开启时使用）',
     chartType	   varchar(128) null comment '图表类型',
     genChart		 text	 null comment '生成的图表数据',
     genResult		 text	 null comment '生成的分析结论',

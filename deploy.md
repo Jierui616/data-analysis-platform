@@ -5,6 +5,7 @@
 ```text
 <项目根>/
 ├── deploy.md              # 本文件：环境、数据库、启动步骤
+├── docker-compose.bigdata.yml  # 可选：本地 ClickHouse + Kafka + MinIO
 ├── requirements.txt       # 可选占位（主栈非 Python 时可仅注释）
 ├── README.md              # 入口简介（可选）
 ├── src/                   # 项目源码
@@ -42,7 +43,7 @@
 | **MySQL 5.7+ / 8.x** | 主库 | 必装；默认库名 **`yubi`**，需与 JDBC URL 一致 |
 | **Maven** | 构建后端 | 可选；后端自带 **`mvnw.cmd` / `mvnw`**，未装 Maven 也可用 Wrapper |
 | **Node.js** | 前端 | 推荐 **18 LTS**（≥12） |
-| **Docker Desktop**（可选） | Redis / RabbitMQ | 仅在使用对应能力或按团队要求时需要 |
+| **Docker Desktop**（可选） | Redis / RabbitMQ / **大数据栈** | 见「三」与「三（乙）」；未用对应能力可不装 |
 
 ---
 
@@ -63,6 +64,67 @@ docker start yubi-rabbit
 ```
 
 说明：当前后端默认排除了部分 Redis 自动配置，多数本地开发可先不启 Redis；若业务需要 Session/缓存走 Redis，需按后端 README 调整 `MainApplication` 与 `application.yml`。
+
+---
+
+## 三（乙）、（可选）本地大数据栈：ClickHouse + Kafka + MinIO
+
+架构图中的 **ClickHouse / Kafka / MinIO** 与主业务库 **MySQL** 独立，用于本地联调 OLAP、事件流与对象存储。**需已安装 Docker Desktop（Windows）或 Docker Engine（Linux）**。
+
+### 1. 一键启动
+
+在 **`<项目根>`** 目录执行：
+
+```powershell
+docker compose -f docker-compose.bigdata.yml up -d
+```
+
+首次会拉取镜像，可能需要几分钟。查看容器状态：
+
+```powershell
+docker compose -f docker-compose.bigdata.yml ps
+```
+
+停止并删除容器（**保留数据卷**，下次 `up` 数据仍在）：
+
+```powershell
+docker compose -f docker-compose.bigdata.yml down
+```
+
+若要连数据卷一并清空（慎用）：
+
+```powershell
+docker compose -f docker-compose.bigdata.yml down -v
+```
+
+### 2. 端口与默认账号（仅本地）
+
+| 服务 | 宿主机端口 | 说明 |
+|------|------------|------|
+| ClickHouse HTTP | **8123** | JDBC/HTTP：`jdbc:ch://localhost:8123/yubi_analytics`（驱动见后端接入文档） |
+| ClickHouse Native | **9000** | `clickhouse-client` 默认协议端口 |
+| Kafka | **9092** | Bootstrap：`localhost:9092`；KRaft 模式，无 ZooKeeper |
+| MinIO S3 API | **9100** | 避免与 ClickHouse 9000 冲突，映射为 9100 |
+| MinIO 控制台 | **9101** | 浏览器打开 `http://localhost:9101` |
+
+- **MinIO** 默认凭据：`minioadmin` / `minioadmin123`（仅开发用，勿用于生产）。  
+- **ClickHouse** 默认用户 `default`，**无密码**（仅开发用）。首次启动会创建库 **`yubi_analytics`**。  
+- **Kafka**：`auto.create.topics.enable=true`，可直接用客户端发消息建 Topic。
+
+### 3. 与当前 Spring 项目的关系
+
+当前 **`application.yml` 未连接上述组件**；本 Compose 仅提供**本地依赖**。在后端接入时，建议另建 `application-bigdata-local.yml`（勿提交密钥），用 `spring.profiles.active` 引入，例如：
+
+- ClickHouse：单独 `DataSource` 或官方 JDBC。  
+- Kafka：`spring-kafka`。  
+- MinIO：AWS SDK S3 兼容端点 `http://localhost:9100`。
+
+### 4. 常见问题
+
+- **拉取镜像 `403 Forbidden`（如 `dockerhub.azk8s.cn` + `bitnami/*`）**：Compose 已改为 **`apache/kafka` 官方镜像**；若仍 403，可在 Docker Desktop 里暂时关闭/更换 `registry-mirrors`，或对 `docker.io` 使用可拉取的代理源。  
+- **端口被占用**：修改 `docker-compose.bigdata.yml` 左侧宿主机端口后再 `up`。  
+- **Kafka 从本机 Java 连接**：Bootstrap 使用 **`localhost:9092`**（与官方示例中 `PLAINTEXT_HOST://localhost:9092` 一致）。  
+- **WSL2 / 防火墙**：若前端或其它机器访问不到 `localhost`，需按 Docker 文档检查端口转发。
 
 ---
 

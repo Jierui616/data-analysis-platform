@@ -22,6 +22,7 @@ import com.yupi.springbootinit.model.vo.bicenter.OperatorOverviewVO;
 import com.yupi.springbootinit.service.ChartService;
 import com.yupi.springbootinit.service.LineageService;
 import com.yupi.springbootinit.service.UserService;
+import com.yupi.springbootinit.service.storage.ChartDataResolverService;
 import com.yupi.springbootinit.utils.CsvTableUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -58,6 +59,9 @@ public class BiCenterController {
 
     @Resource
     private LineageService lineageService;
+
+    @Resource
+    private ChartDataResolverService chartDataResolverService;
 
     @Autowired(required = false)
     private StringRedisTemplate stringRedisTemplate;
@@ -303,7 +307,7 @@ public class BiCenterController {
             snapshot.put("chartType", chart.getChartType());
             snapshot.put("genResult", limit(StringUtils.defaultString(chart.getGenResult()), 3000));
             snapshot.put("resultMeta", limit(StringUtils.defaultString(chart.getResultMeta()), 3000));
-            snapshot.put("chartData", limit(StringUtils.defaultString(chart.getChartData()), 8000));
+            snapshot.put("chartData", limit(StringUtils.defaultString(chartDataResolverService.resolveCsv(chart)), 8000));
             return snapshot;
         } catch (Exception e) {
             // 聊天场景下不强依赖快照，取不到时降级为空，避免阻断会话
@@ -322,9 +326,10 @@ public class BiCenterController {
             if (!Objects.equals(chart.getUserId(), loginUser.getId()) && !userService.isAdmin(loginUser)) {
                 throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
             }
-            if (StringUtils.isBlank(chart.getChartData())) {
+            if (!chartDataResolverService.hasCsv(chart)) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "图表原始数据为空");
             }
+            chartDataResolverService.hydrate(chart);
             return chart;
         }
 
@@ -341,7 +346,7 @@ public class BiCenterController {
         Chart best = null;
         for (Chart c : records) {
             if (c == null) continue;
-            if (StringUtils.isBlank(c.getChartData())) continue;
+            if (!chartDataResolverService.hasCsv(c)) continue;
             if ("succeed".equalsIgnoreCase(StringUtils.defaultString(c.getStatus()))) {
                 best = c;
                 break;
@@ -351,6 +356,7 @@ public class BiCenterController {
         if (best == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "未找到可用的原始数据，请先在「智能分析」上传数据并提交");
         }
+        chartDataResolverService.hydrate(best);
         return best;
     }
 
@@ -382,7 +388,7 @@ public class BiCenterController {
     }
 
     private CsvTableUtils.Table getOrParseTable(Long userId, Chart chart) {
-        String csv = chart == null ? null : chart.getChartData();
+        String csv = chartDataResolverService.resolveCsv(chart);
         if (StringUtils.isBlank(csv)) {
             // CsvTableUtils.parse 至少需要表头行；这里仅做防御，正常情况下 chartData 为空会在上游直接抛错
             return CsvTableUtils.parse("col\n");
@@ -1170,7 +1176,7 @@ public class BiCenterController {
     }
 
     private AiBlockVO buildManagerAi(Chart chart, ManagerOverviewVO vo) {
-        String csv = StringUtils.defaultString(chart.getChartData());
+        String csv = StringUtils.defaultString(chartDataResolverService.resolveCsv(chart));
         String prompt = "你是企业经营分析专家。请基于我给你的CSV数据（来自业务系统导出）与下列关键指标，输出严格JSON："
                 + "{\"summary\":\"\",\"risks\":[],\"reasons\":[],\"suggestions\":[]}\n\n"
                 + "关键指标：营收=" + vo.getRevenue() + ", 利润=" + vo.getProfit() + ", 现金流=" + vo.getCashflow()
@@ -1181,7 +1187,7 @@ public class BiCenterController {
     }
 
     private AiBlockVO buildOperatorAi(Chart chart, OperatorOverviewVO vo) {
-        String csv = StringUtils.defaultString(chart.getChartData());
+        String csv = StringUtils.defaultString(chartDataResolverService.resolveCsv(chart));
         String prompt = "你是增长运营专家。请基于CSV数据与活动ROI/漏斗，输出严格JSON："
                 + "{\"summary\":\"\",\"risks\":[],\"reasons\":[],\"suggestions\":[]}\n\n"
                 + "活动=" + vo.getCampaign().getName()
@@ -1193,7 +1199,7 @@ public class BiCenterController {
     }
 
     private AiBlockVO buildInvestorAi(Chart chart, InvestorOverviewVO vo) {
-        String csv = StringUtils.defaultString(chart.getChartData());
+        String csv = StringUtils.defaultString(chartDataResolverService.resolveCsv(chart));
         String prompt = "你是投资研究分析师。请基于CSV数据（可能为财务/经营数据）与下列结构，输出严格JSON："
                 + "{\"summary\":\"\",\"risks\":[],\"reasons\":[],\"suggestions\":[]}\n\n"
                 + "公司=" + vo.getCompany() + ", 期间=" + vo.getPeriod()

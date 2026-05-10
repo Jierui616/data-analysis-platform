@@ -1,6 +1,7 @@
 package com.yupi.springbootinit.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -9,13 +10,19 @@ import com.google.gson.JsonParser;
 import com.yupi.springbootinit.mapper.ChartMapper;
 import com.yupi.springbootinit.mapper.ExplainSnapshotMapper;
 import com.yupi.springbootinit.mapper.LineageFixTaskMapper;
+import com.yupi.springbootinit.mapper.LineageEdgeMapper;
 import com.yupi.springbootinit.mapper.LineageEventMapper;
+import com.yupi.springbootinit.mapper.LineageNodeMapper;
+import com.yupi.springbootinit.mapper.LineageRunMapper;
 import com.yupi.springbootinit.model.dto.lineage.ExplainRecordRequest;
 import com.yupi.springbootinit.model.dto.lineage.LineageRecordRequest;
 import com.yupi.springbootinit.model.entity.ExplainSnapshot;
 import com.yupi.springbootinit.model.entity.LineageEvent;
 import com.yupi.springbootinit.model.entity.Chart;
+import com.yupi.springbootinit.model.entity.LineageEdge;
 import com.yupi.springbootinit.model.entity.LineageFixTask;
+import com.yupi.springbootinit.model.entity.LineageNode;
+import com.yupi.springbootinit.model.entity.LineageRun;
 import com.yupi.springbootinit.model.vo.lineage.LineageFixTaskVO;
 import com.yupi.springbootinit.model.vo.lineage.LineageGraphEdgeVO;
 import com.yupi.springbootinit.model.vo.lineage.LineageGraphNodeVO;
@@ -27,6 +34,7 @@ import com.yupi.springbootinit.service.LineageService;
 import com.yupi.springbootinit.utils.CsvTableUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.nio.charset.StandardCharsets;
@@ -53,6 +61,8 @@ import java.util.regex.Pattern;
 public class LineageServiceImpl implements LineageService {
     private static final Gson GSON = new Gson();
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    /** 物化入库时使用较大深度，便于查询侧拿到完整链路（查询仍可按 depth 走推导降级）。 */
+    private static final int MATERIALIZE_GRAPH_DEPTH = 5;
 
     @Resource
     private LineageEventMapper lineageEventMapper;
@@ -66,12 +76,22 @@ public class LineageServiceImpl implements LineageService {
     @Resource
     private LineageFixTaskMapper lineageFixTaskMapper;
 
+    @Resource
+    private LineageNodeMapper lineageNodeMapper;
+
+    @Resource
+    private LineageEdgeMapper lineageEdgeMapper;
+
+    @Resource
+    private LineageRunMapper lineageRunMapper;
+
     @Override
     public String newTraceId() {
         return UUID.randomUUID().toString().replace("-", "");
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void recordEvent(LineageRecordRequest request) {
         if (request == null || StringUtils.isBlank(request.getTraceId()) || StringUtils.isBlank(request.getEventType())) {
             return;
@@ -88,6 +108,7 @@ public class LineageServiceImpl implements LineageService {
         event.setStatus(defaultIfBlank(request.getStatus(), "succeed"));
         event.setOperatorId(request.getOperatorId());
         lineageEventMapper.insert(event);
+        syncMaterializedLineageForTrace(request.getTraceId());
     }
 
     @Override
@@ -194,6 +215,20 @@ public class LineageServiceImpl implements LineageService {
         if (events.isEmpty()) {
             return null;
         }
+        LineageGraphVO materialized = loadMaterializedGraphVO(trace.getTraceId(), chartId);
+        if (materialized != null && materialized.getEdges() != null && !materialized.getEdges().isEmpty()) {
+            return materialized;
+        }
+        return buildDerivedAssetGraphVO(chartId, trace.getTraceId(), events, graphDepth);
+    }
+
+    /**
+     * 与 {@link #getAssetGraphByChartId} 中「无物化数据时」的推导逻辑一致，供物化入库复用。
+     */
+    private LineageGraphVO buildDerivedAssetGraphVO(Long chartId, String traceId, List<LineageEvent> events, int graphDepth) {
+        if (chartId == null || chartId <= 0 || StringUtils.isBlank(traceId) || events == null || events.isEmpty()) {
+            return null;
+        }
         Map<String, LineageGraphNodeVO> nodeMap = new LinkedHashMap<>();
         List<LineageGraphEdgeVO> edges = new ArrayList<>();
 
@@ -258,11 +293,327 @@ public class LineageServiceImpl implements LineageService {
         }
 
         LineageGraphVO graphVO = new LineageGraphVO();
-        graphVO.setTraceId(trace.getTraceId());
+        graphVO.setTraceId(traceId);
         graphVO.setChartId(chartId);
         graphVO.setNodes(new ArrayList<>(nodeMap.values()));
         graphVO.setEdges(edges);
         return graphVO;
+    }
+
+    /**
+     * 每次写入 lineage_event 后，按当前 trace 全量重算并落库 node/edge/run（runId 与 traceId 对齐）。
+     */
+    private void syncMaterializedLineageForTrace(String traceId) {
+        if (StringUtils.isBlank(traceId)) {
+            return;
+        }
+        QueryWrapper<LineageEvent> eventQw = new QueryWrapper<>();
+        eventQw.eq("traceId", traceId);
+        eventQw.eq("isDelete", 0);
+        eventQw.orderByAsc("createTime");
+        eventQw.orderByAsc("id");
+        List<LineageEvent> events = lineageEventMapper.selectList(eventQw);
+        if (events == null || events.isEmpty()) {
+            return;
+        }
+        Long anchorChartId = resolveAnchorChartId(events);
+        if (anchorChartId == null || anchorChartId <= 0) {
+            return;
+        }
+        LineageGraphVO graph = buildDerivedAssetGraphVO(anchorChartId, traceId, events, MATERIALIZE_GRAPH_DEPTH);
+        if (graph == null || graph.getEdges() == null || graph.getEdges().isEmpty()) {
+            return;
+        }
+        persistMaterializedGraph(graph, traceId, anchorChartId, events);
+    }
+
+    private Long resolveAnchorChartId(List<LineageEvent> events) {
+        Long last = null;
+        for (LineageEvent event : events) {
+            if (event != null && event.getChartId() != null && event.getChartId() > 0) {
+                last = event.getChartId();
+            }
+        }
+        return last;
+    }
+
+    private void persistMaterializedGraph(LineageGraphVO graph, String traceId, Long chartId, List<LineageEvent> events) {
+        upsertLineageRun(traceId, chartId, events);
+        for (LineageGraphNodeVO node : graph.getNodes()) {
+            if (node == null || StringUtils.isBlank(node.getNodeKey())) {
+                continue;
+            }
+            upsertLineageNode(node, chartId);
+        }
+        softDeleteEdgesForRun(traceId);
+        Date now = new Date();
+        for (LineageGraphEdgeVO edge : graph.getEdges()) {
+            if (edge == null || StringUtils.isBlank(edge.getFromNodeKey()) || StringUtils.isBlank(edge.getToNodeKey())) {
+                continue;
+            }
+            LineageEdge row = new LineageEdge();
+            row.setFromNodeKey(edge.getFromNodeKey());
+            row.setToNodeKey(edge.getToNodeKey());
+            row.setEdgeType(defaultIfBlank(edge.getEdgeType(), "derive"));
+            row.setRunId(traceId);
+            row.setMetaJson(edgeToMetaJson(edge));
+            row.setCreateTime(now);
+            row.setUpdateTime(now);
+            lineageEdgeMapper.insert(row);
+        }
+    }
+
+    private void upsertLineageRun(String traceId, Long chartId, List<LineageEvent> events) {
+        LineageEvent first = events.get(0);
+        LineageEvent last = events.get(events.size() - 1);
+        QueryWrapper<LineageRun> qw = new QueryWrapper<>();
+        qw.eq("runId", traceId);
+        qw.eq("isDelete", 0);
+        LineageRun existing = lineageRunMapper.selectOne(qw);
+        LineageRun run = new LineageRun();
+        run.setRunId(traceId);
+        run.setTraceId(traceId);
+        run.setChartId(chartId);
+        run.setStatus(defaultIfBlank(last.getStatus(), "succeed"));
+        run.setStartTime(first.getCreateTime());
+        run.setEndTime(last.getCreateTime());
+        JsonObject meta = new JsonObject();
+        meta.addProperty("eventCount", events.size());
+        meta.addProperty("source", "lineage_event_sync");
+        run.setMetaJson(GSON.toJson(meta));
+        if (existing != null) {
+            run.setId(existing.getId());
+            lineageRunMapper.updateById(run);
+        } else {
+            lineageRunMapper.insert(run);
+        }
+    }
+
+    private void upsertLineageNode(LineageGraphNodeVO vo, Long runChartId) {
+        QueryWrapper<LineageNode> qw = new QueryWrapper<>();
+        qw.eq("nodeKey", vo.getNodeKey());
+        qw.eq("isDelete", 0);
+        LineageNode existing = lineageNodeMapper.selectOne(qw);
+        LineageNode n = new LineageNode();
+        n.setNodeKey(vo.getNodeKey());
+        n.setNodeType(defaultIfBlank(vo.getNodeType(), "unknown"));
+        n.setName(defaultIfBlank(vo.getName(), vo.getNodeKey()));
+        n.setChartId(resolveNodeChartIdForPersist(vo.getNodeKey(), runChartId));
+        JsonObject meta = new JsonObject();
+        meta.addProperty("status", defaultIfBlank(vo.getStatus(), "active"));
+        n.setMetaJson(GSON.toJson(meta));
+        if (existing != null) {
+            n.setId(existing.getId());
+            lineageNodeMapper.updateById(n);
+        } else {
+            lineageNodeMapper.insert(n);
+        }
+    }
+
+    private Long resolveNodeChartIdForPersist(String nodeKey, Long runChartId) {
+        if (StringUtils.isBlank(nodeKey)) {
+            return runChartId;
+        }
+        if (nodeKey.startsWith("chart:")) {
+            try {
+                return Long.parseLong(nodeKey.substring("chart:".length()));
+            } catch (NumberFormatException ignored) {
+                return runChartId;
+            }
+        }
+        if (nodeKey.startsWith("metric:chart_goal:")) {
+            try {
+                return Long.parseLong(nodeKey.substring("metric:chart_goal:".length()));
+            } catch (NumberFormatException ignored) {
+                return runChartId;
+            }
+        }
+        return runChartId;
+    }
+
+    private void softDeleteEdgesForRun(String traceId) {
+        LineageEdge patch = new LineageEdge();
+        patch.setIsDelete(1);
+        UpdateWrapper<LineageEdge> uw = new UpdateWrapper<>();
+        uw.eq("runId", traceId);
+        uw.eq("isDelete", 0);
+        lineageEdgeMapper.update(patch, uw);
+    }
+
+    private String edgeToMetaJson(LineageGraphEdgeVO edge) {
+        JsonObject o = new JsonObject();
+        if (StringUtils.isNotBlank(edge.getEvidenceSource())) {
+            o.addProperty("evidenceSource", edge.getEvidenceSource());
+        }
+        if (StringUtils.isNotBlank(edge.getConfidence())) {
+            o.addProperty("confidence", edge.getConfidence());
+        }
+        if (StringUtils.isNotBlank(edge.getEvidenceDetail())) {
+            o.addProperty("evidenceDetail", edge.getEvidenceDetail());
+        }
+        if (StringUtils.isNotBlank(edge.getFixSuggestion())) {
+            o.addProperty("fixSuggestion", edge.getFixSuggestion());
+        }
+        if (StringUtils.isNotBlank(edge.getEventMetaTemplate())) {
+            o.addProperty("eventMetaTemplate", edge.getEventMetaTemplate());
+        }
+        return o.size() > 0 ? GSON.toJson(o) : null;
+    }
+
+    private LineageGraphVO loadMaterializedGraphVO(String traceId, Long chartId) {
+        if (StringUtils.isBlank(traceId)) {
+            return null;
+        }
+        QueryWrapper<LineageEdge> edgeQw = new QueryWrapper<>();
+        edgeQw.eq("runId", traceId);
+        edgeQw.eq("isDelete", 0);
+        List<LineageEdge> edgeRows = lineageEdgeMapper.selectList(edgeQw);
+        if (edgeRows == null || edgeRows.isEmpty()) {
+            return null;
+        }
+        Set<String> nodeKeys = new LinkedHashSet<>();
+        for (LineageEdge e : edgeRows) {
+            if (e == null) {
+                continue;
+            }
+            if (StringUtils.isNotBlank(e.getFromNodeKey())) {
+                nodeKeys.add(e.getFromNodeKey());
+            }
+            if (StringUtils.isNotBlank(e.getToNodeKey())) {
+                nodeKeys.add(e.getToNodeKey());
+            }
+        }
+        Map<String, LineageGraphNodeVO> nodeMap = new LinkedHashMap<>();
+        if (!nodeKeys.isEmpty()) {
+            QueryWrapper<LineageNode> nodeQw = new QueryWrapper<>();
+            nodeQw.in("nodeKey", nodeKeys);
+            nodeQw.eq("isDelete", 0);
+            List<LineageNode> nodeRows = lineageNodeMapper.selectList(nodeQw);
+            if (nodeRows != null) {
+                for (LineageNode row : nodeRows) {
+                    if (row == null || StringUtils.isBlank(row.getNodeKey())) {
+                        continue;
+                    }
+                    nodeMap.put(row.getNodeKey(), lineageNodeToVo(row));
+                }
+            }
+        }
+        for (String key : nodeKeys) {
+            if (!nodeMap.containsKey(key)) {
+                nodeMap.put(key, placeholderNodeVo(key));
+            }
+        }
+        List<LineageGraphEdgeVO> edges = new ArrayList<>();
+        for (LineageEdge row : edgeRows) {
+            if (row == null) {
+                continue;
+            }
+            edges.add(lineageEdgeRowToVo(row));
+        }
+        LineageGraphVO vo = new LineageGraphVO();
+        vo.setTraceId(traceId);
+        vo.setChartId(chartId);
+        vo.setNodes(new ArrayList<>(nodeMap.values()));
+        vo.setEdges(edges);
+        return vo;
+    }
+
+    private LineageGraphNodeVO lineageNodeToVo(LineageNode row) {
+        LineageGraphNodeVO vo = new LineageGraphNodeVO();
+        vo.setNodeKey(row.getNodeKey());
+        vo.setNodeType(defaultIfBlank(row.getNodeType(), "unknown"));
+        vo.setName(defaultIfBlank(row.getName(), row.getNodeKey()));
+        vo.setStatus(parseNodeStatusFromMeta(row.getMetaJson()));
+        return vo;
+    }
+
+    private String parseNodeStatusFromMeta(String metaJson) {
+        if (StringUtils.isBlank(metaJson)) {
+            return "active";
+        }
+        try {
+            JsonElement el = JsonParser.parseString(metaJson);
+            if (el != null && el.isJsonObject()) {
+                JsonElement st = el.getAsJsonObject().get("status");
+                if (st != null && st.isJsonPrimitive()) {
+                    return st.getAsString();
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return "active";
+    }
+
+    private LineageGraphNodeVO placeholderNodeVo(String nodeKey) {
+        LineageGraphNodeVO vo = new LineageGraphNodeVO();
+        vo.setNodeKey(nodeKey);
+        if (nodeKey.startsWith("dataset:")) {
+            vo.setNodeType("dataset");
+            vo.setName(nodeKey.substring("dataset:".length()));
+        } else if (nodeKey.startsWith("task:")) {
+            vo.setNodeType("task");
+            vo.setName("任务节点");
+        } else if (nodeKey.startsWith("chart:")) {
+            vo.setNodeType("chart");
+            vo.setName(nodeKey);
+        } else if (nodeKey.startsWith("metric:")) {
+            vo.setNodeType("metric");
+            vo.setName("指标");
+        } else {
+            vo.setNodeType("unknown");
+            vo.setName(nodeKey);
+        }
+        vo.setStatus("active");
+        return vo;
+    }
+
+    private LineageGraphEdgeVO lineageEdgeRowToVo(LineageEdge row) {
+        LineageGraphEdgeVO vo = new LineageGraphEdgeVO();
+        vo.setFromNodeKey(row.getFromNodeKey());
+        vo.setToNodeKey(row.getToNodeKey());
+        vo.setEdgeType(row.getEdgeType());
+        if (StringUtils.isBlank(row.getMetaJson())) {
+            vo.setEvidenceSource("system");
+            vo.setConfidence("high");
+            return vo;
+        }
+        try {
+            JsonElement el = JsonParser.parseString(row.getMetaJson());
+            if (el != null && el.isJsonObject()) {
+                JsonObject o = el.getAsJsonObject();
+                if (o.has("evidenceSource") && o.get("evidenceSource").isJsonPrimitive()) {
+                    vo.setEvidenceSource(o.get("evidenceSource").getAsString());
+                }
+                if (o.has("confidence") && o.get("confidence").isJsonPrimitive()) {
+                    vo.setConfidence(o.get("confidence").getAsString());
+                }
+                if (o.has("evidenceDetail") && o.get("evidenceDetail").isJsonPrimitive()) {
+                    vo.setEvidenceDetail(o.get("evidenceDetail").getAsString());
+                }
+                if (o.has("fixSuggestion") && o.get("fixSuggestion").isJsonPrimitive()) {
+                    vo.setFixSuggestion(o.get("fixSuggestion").getAsString());
+                }
+                if (o.has("eventMetaTemplate") && o.get("eventMetaTemplate").isJsonPrimitive()) {
+                    vo.setEventMetaTemplate(o.get("eventMetaTemplate").getAsString());
+                }
+            }
+        } catch (Exception ignored) {
+            vo.setEvidenceSource("system");
+            vo.setConfidence("medium");
+        }
+        if (StringUtils.isBlank(vo.getEvidenceSource())) {
+            vo.setEvidenceSource("system");
+        }
+        if (StringUtils.isBlank(vo.getConfidence())) {
+            vo.setConfidence("high");
+        }
+        if (StringUtils.isBlank(vo.getFixSuggestion())) {
+            vo.setFixSuggestion(buildFixSuggestion(vo.getEvidenceSource(), vo.getFromNodeKey(), vo.getToNodeKey(), vo.getEdgeType()));
+        }
+        if (StringUtils.isBlank(vo.getEventMetaTemplate())) {
+            vo.setEventMetaTemplate(buildEventMetaTemplate(vo.getEvidenceSource(), vo.getFromNodeKey(), vo.getToNodeKey(), vo.getEdgeType()));
+        }
+        return vo;
     }
 
     @Override

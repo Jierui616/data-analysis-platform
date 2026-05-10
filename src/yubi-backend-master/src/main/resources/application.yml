@@ -102,6 +102,19 @@ cos:
     secretKey: xxx
     region: xxx
     bucket: xxx
+# 图表原始 CSV 外置到对象存储（第一期）。默认关闭，行为与旧版一致。
+# 开启前请在 MySQL 执行：src/yubi-backend-master/sql/chart_data_ref_alter.sql
+# 本地 MinIO 见 docker-compose.bigdata.yml（API 端口 9100）；生产可设 provider: cos 使用上方 cos.client。
+storage:
+  chartData:
+    enabled: false
+    provider: minio
+    keyPrefix: chart-data
+  minio:
+    endpoint: http://127.0.0.1:9100
+    access-key: minioadmin
+    secret-key: minioadmin123
+    bucket: yubi-charts
 # 阿里云百炼 DashScope（OpenAI 兼容接口）
 # 控制台：https://bailian.console.aliyun.com/  → 创建 API Key
 # 若报错「免费额度已用尽 / AllocationQuota.FreeTierOnly」：在控制台关闭「仅限免费额度」或为账户开通按量付费
