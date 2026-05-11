@@ -2,7 +2,7 @@ import { history } from '@umijs/max';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
-import { Button, DatePicker, Segmented, Select, Space, Spin, message } from 'antd';
+import { Button, DatePicker, Segmented, Select, Skeleton, Space, Spin, message } from 'antd';
 import dayjs from 'dayjs';
 import { getChartByIdUsingGET, listMyChartByPageUsingPOST } from '@/services/yubi/chartController';
 import {
@@ -634,29 +634,54 @@ const BIOperationScreen: React.FC = () => {
       } catch {
         // 日期探测失败不阻断大屏加载
       }
-      const [hqRes, storeRes, dishRes, alertRes, geoRes, scopeRes, forecastRes, costRiskRes, staffEfficiencyRes, campaignRes] = await Promise.all([
-        getRestaurantHqOverview(queryBody),
-        getRestaurantStoreOverview(queryBody),
-        getRestaurantDishAnalysis(queryBody),
-        getRestaurantAlertEvents(queryBody),
-        getRestaurantGeoScope(globalScopeQueryBody),
-        getRestaurantHqOverview(globalScopeQueryBody),
-        getRestaurantForecastMock(queryBody),
-        getRestaurantCostLossMock(queryBody),
-        getRestaurantStaffEfficiencyMock(queryBody),
-        getRestaurantCampaignReview(queryBody),
-      ]);
-      setHqData(hqRes?.data || {});
-      setStoreData(storeRes?.data || {});
-      setDishData(dishRes?.data || {});
-      setAlertData(alertRes?.data || { events: [] });
-      setForecastData(forecastRes?.data || {});
-      setCostRiskData(costRiskRes?.data || {});
-      setStaffEfficiencyData(staffEfficiencyRes?.data || {});
-      setCampaignData(campaignRes?.data || {});
-      setGeoScope(geoRes?.data || {});
-      const rank = (scopeRes?.data as any)?.storeRank || [];
+      const sliceRequests: Array<() => Promise<any>> = [
+        () => getRestaurantHqOverview(queryBody),
+        () => getRestaurantStoreOverview(queryBody),
+        () => getRestaurantDishAnalysis(queryBody),
+        () => getRestaurantAlertEvents(queryBody),
+        () => getRestaurantGeoScope(globalScopeQueryBody),
+        () => getRestaurantHqOverview(globalScopeQueryBody),
+        () => getRestaurantForecastMock(queryBody),
+        () => getRestaurantCostLossMock(queryBody),
+        () => getRestaurantStaffEfficiencyMock(queryBody),
+        () => getRestaurantCampaignReview(queryBody),
+      ];
+      const settled = await Promise.allSettled(sliceRequests.map((fn) => fn()));
+      const safeData = (idx: number) =>
+        settled[idx]?.status === 'fulfilled' ? (settled[idx] as PromiseFulfilledResult<any>).value?.data : undefined;
+      let failedSlices = 0;
+      settled.forEach((r, i) => {
+        if (r.status === 'rejected') {
+          failedSlices += 1;
+          // eslint-disable-next-line no-console
+          console.warn(`[BIOperationScreen] 模块 ${i} 请求失败`, (r as PromiseRejectedResult).reason);
+        }
+      });
+      const hqResData = safeData(0);
+      const storeResData = safeData(1);
+      const dishResData = safeData(2);
+      const alertResData = safeData(3);
+      const geoResData = safeData(4);
+      const scopeResData = safeData(5);
+      const forecastResData = safeData(6);
+      const costRiskResData = safeData(7);
+      const staffEfficiencyResData = safeData(8);
+      const campaignResData = safeData(9);
+      setHqData(hqResData || {});
+      setStoreData(storeResData || {});
+      setDishData(dishResData || {});
+      setAlertData(alertResData || { events: [] });
+      setForecastData(forecastResData || {});
+      setCostRiskData(costRiskResData || {});
+      setStaffEfficiencyData(staffEfficiencyResData || {});
+      setCampaignData(campaignResData || {});
+      setGeoScope(geoResData || {});
+      const rank = (scopeResData as any)?.storeRank || [];
       setStoreRank(rank);
+      const geoRes = { data: geoResData };
+      if (failedSlices > 0) {
+        message.warning(`部分大屏模块加载失败（${failedSlices} 项），其余区域仍展示可用数据`);
+      }
       const geoStores = ((geoRes?.data as any)?.stores || []) as any[];
       const rankWithId = (rank || []).filter((s: any) => s?.storeId != null);
       const geoWithId = geoStores.filter((s: any) => s?.storeId != null);
@@ -2028,7 +2053,27 @@ const BIOperationScreen: React.FC = () => {
         ))}
       </div>
 
-      <Spin spinning={loading}>
+      {loading ? (
+        <div className="biOpBody">
+          <div className={`biOpGrid ${view === 'hq' ? 'biOpGrid--hq' : ''}`}>
+            <div className={`biOpLeft ${view === 'hq' ? 'biOpLeft--hq' : ''}`}>
+              <Skeleton active paragraph={{ rows: 5 }} style={{ marginBottom: 16 }} />
+              <Skeleton active paragraph={{ rows: 4 }} style={{ marginBottom: 16 }} />
+              <Skeleton active paragraph={{ rows: 3 }} />
+            </div>
+            <div className="biOpMid">
+              <div style={{ minHeight: 420 }}>
+                <Skeleton active title={{ width: '40%' }} paragraph={{ rows: 14 }} />
+              </div>
+            </div>
+            <div className={`biOpRight ${view === 'hq' ? 'biOpRight--hq' : ''}`}>
+              <Skeleton active paragraph={{ rows: 5 }} style={{ marginBottom: 16 }} />
+              <Skeleton active paragraph={{ rows: 4 }} style={{ marginBottom: 16 }} />
+              <Skeleton active paragraph={{ rows: 3 }} />
+            </div>
+          </div>
+        </div>
+      ) : (
         <div className="biOpBody">
           <div className={`biOpGrid ${view === 'hq' ? 'biOpGrid--hq' : ''}`}>
             <div className={`biOpLeft ${view === 'hq' ? 'biOpLeft--hq' : ''} ${view === 'store' ? 'biOpLeft--store' : ''}`}>
@@ -2296,7 +2341,7 @@ const BIOperationScreen: React.FC = () => {
             </div>
           </div>
         </div>
-      </Spin>
+      )}
     </div>
   );
 };

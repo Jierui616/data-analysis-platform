@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   Col,
+  Collapse,
   Descriptions,
   Divider,
   Input,
@@ -73,6 +74,71 @@ type LineageFixTask = {
   fixSuggestion?: string;
   status: string;
 };
+
+const EVENT_STEP_LABELS: Record<string, string> = {
+  SOURCE_INGESTED: '数据接入',
+  DATA_CLEANED: '数据清洗',
+  METRIC_COMPUTED: '指标计算',
+  CHART_RENDERED: '图表生成',
+  AI_INTERPRETED: '智能解读',
+};
+
+function businessEventLabel(eventType?: string) {
+  if (!eventType) return '处理步骤';
+  return EVENT_STEP_LABELS[eventType] || eventType;
+}
+
+type NodeLookup = Map<string, { name: string; nodeType?: string }>;
+
+function buildNodeLookup(nodes: LineageGraphData['nodes']): NodeLookup {
+  const m: NodeLookup = new Map();
+  (nodes || []).forEach((n) => {
+    if (n?.nodeKey) m.set(n.nodeKey, { name: n.name, nodeType: n.nodeType });
+  });
+  return m;
+}
+
+function businessNodeLine(nodeKey: string, lookup: NodeLookup): string {
+  const hit = lookup.get(nodeKey);
+  if (hit?.name) return hit.name;
+  if (nodeKey.startsWith('dataset:')) {
+    const id = nodeKey.slice('dataset:'.length);
+    if (id.startsWith('chart_input_')) return '上传的经营数据';
+    if (id.startsWith('chart_clean_')) return '清洗后的数据';
+    if (id.startsWith('chart_metric_')) return '指标计算结果';
+    if (id.startsWith('chart_option_')) return '图表展示配置';
+    if (id.startsWith('chart_ai_result_')) return '智能解读结论';
+    return `数据（${id}）`;
+  }
+  if (nodeKey.startsWith('chart:')) return `图表（编号 ${nodeKey.replace('chart:', '')}）`;
+  if (nodeKey.startsWith('metric:')) return '指标口径（分析目标）';
+  if (nodeKey.startsWith('task:')) return '分析处理步骤';
+  return nodeKey;
+}
+
+function edgeTypePlain(edgeType?: string): string {
+  const t = String(edgeType || '').toLowerCase();
+  if (t === 'read') return '读取';
+  if (t === 'write') return '产出';
+  if (t === 'derive') return '推导';
+  if (t === 'use') return '使用';
+  return edgeType || '-';
+}
+
+function evidenceSourcePlain(s?: string): string {
+  if (s === 'event_meta') return '有明确记录';
+  if (s === 'text_parse') return '系统推测';
+  if (s === 'system') return '系统内置';
+  return s ? s : '未知';
+}
+
+function confidencePlain(c?: string): string {
+  const x = String(c || '').toLowerCase();
+  if (x === 'high') return '高可信';
+  if (x === 'medium') return '一般';
+  if (x === 'low') return '待核实';
+  return '一般';
+}
 
 const LineageCenter: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -222,10 +288,10 @@ const LineageCenter: React.FC = () => {
 
   const majorIssue = useMemo(() => {
     if (failedEvents.length > 0) {
-      return `处理步骤异常：${failedEvents[0]?.eventType || '未知步骤'}`;
+      return `处理步骤异常：${businessEventLabel(failedEvents[0]?.eventType)}`;
     }
     if (lowConfidenceEdges.length > 0) {
-      return '存在低可信数据关系';
+      return '存在基于「系统推测」的数据关系，重要决策前建议核对';
     }
     if (pendingFixCount > 0) {
       return '存在待处理问题';
@@ -235,7 +301,8 @@ const LineageCenter: React.FC = () => {
 
   const suggestedAction = useMemo(() => {
     if (failedEvents.length > 0) return '建议先重新生成分析，再检查失败步骤输入数据。';
-    if (lowConfidenceEdges.length > 0) return '建议优先处理低可信关系，补齐结构化证据。';
+    if (lowConfidenceEdges.length > 0)
+      return '建议请技术侧补充「数据来源」说明，或确认当前结果可作为探索/演示结论。';
     if (pendingFixCount > 0) return '建议按优先级完成待处理问题并复核结果。';
     return '当前结果可信，可直接用于经营分析决策。';
   }, [failedEvents, lowConfidenceEdges, pendingFixCount]);
@@ -251,7 +318,7 @@ const LineageCenter: React.FC = () => {
     }> = [];
     if (failedEvents.length > 0) {
       items.push({
-        title: `存在失败步骤：${failedEvents[0]?.eventType || '未知步骤'}`,
+        title: `存在失败步骤：${businessEventLabel(failedEvents[0]?.eventType)}`,
         owner: '数据运营',
         priority: '高',
         impact: '当前分析结论可能失真，不建议直接用于经营决策',
@@ -261,11 +328,11 @@ const LineageCenter: React.FC = () => {
     }
     if (lowConfidenceEdges.length > 0) {
       items.push({
-        title: `存在 ${lowConfidenceEdges.length} 条低可信数据关系`,
+        title: `有 ${lowConfidenceEdges.length} 处关系来自「系统推测」，非明确记录`,
         owner: '数据治理负责人',
         priority: failedEvents.length > 0 ? '中' : '高',
-        impact: '部分指标关系解释不充分，结论可信度下降',
-        action: '补齐结构化证据并完成低可信关系修复',
+        impact: '业务上可能难以完全还原「数从哪条线过来」，重要结论建议复核',
+        action: '补充数据来源说明，或在修复任务中标记「已确认可接受」',
         sla: '48小时内',
       });
     }
@@ -317,6 +384,13 @@ const LineageCenter: React.FC = () => {
     return grouped;
   }, [impactItemsWithPriority]);
 
+  const chartDisplayName = useMemo(() => {
+    const opt = chartOptions.find((o) => o.value === chartIdInput);
+    if (opt?.label) return opt.label;
+    if (trace?.chartId != null) return `图表 ${trace.chartId}`;
+    return chartIdInput ? `图表 ${chartIdInput}` : '未选择';
+  }, [chartOptions, chartIdInput, trace?.chartId]);
+
   /** 资产血缘力导向图（与物化/推导接口字段一致） */
   const lineageGraphChartOption = useMemo(() => {
     const nodes = graph?.nodes || [];
@@ -324,6 +398,7 @@ const LineageCenter: React.FC = () => {
     if (!nodes.length && !edges.length) {
       return null;
     }
+    const lookup = buildNodeLookup(nodes);
     const categoryOrder = ['dataset', 'task', 'metric', 'chart', 'unknown'];
     const categories = categoryOrder.map((name) => ({ name }));
     const catIndex = (t?: string) => {
@@ -340,15 +415,15 @@ const LineageCenter: React.FC = () => {
     });
     const data = Array.from(nodeKeySet).map((key) => {
       const n = nodes.find((x) => x.nodeKey === key);
-      const label = n?.name || key;
-      const short = label.length > 18 ? `${label.slice(0, 16)}…` : label;
+      const fullLabel = businessNodeLine(key, lookup);
+      const short = fullLabel.length > 18 ? `${fullLabel.slice(0, 16)}…` : fullLabel;
       return {
         id: key,
         name: short,
         category: catIndex(n?.nodeType),
         symbolSize: n?.nodeType === 'chart' ? 40 : n?.nodeType === 'dataset' ? 32 : 26,
         tooltip: {
-          formatter: `${n?.nodeType || 'unknown'}<br/>${key}`,
+          formatter: `${n?.nodeType || '节点'}<br/>${fullLabel}<br/><span style="color:#999">${key}</span>`,
         },
       };
     });
@@ -383,11 +458,13 @@ const LineageCenter: React.FC = () => {
     };
   }, [graph]);
 
+  const graphNodeLookup = useMemo(() => buildNodeLookup(graph?.nodes || []), [graph?.nodes]);
+
   return (
     <div>
       <Typography.Title level={4}>分析可信度与问题追踪中心</Typography.Title>
       <Typography.Paragraph type="secondary" style={{ marginTop: -8 }}>
-        帮助你判断本次分析是否可信、问题在哪、该由谁处理。业务同学先看“问题与建议”，排查时再看技术详情。
+        帮助你判断本次分析是否可信、问题在哪、该由谁处理。建议先看「数据链路」理解过程，再看「问题与建议」；技术字段集中在高级页签。
       </Typography.Paragraph>
       <Card style={{ marginBottom: 12 }}>
         <Space wrap>
@@ -443,17 +520,20 @@ const LineageCenter: React.FC = () => {
               <Col xs={24} lg={12}>
                 <Card>
                   <Descriptions size="small" column={4}>
+                    <Descriptions.Item label="分析对象">{chartDisplayName}</Descriptions.Item>
                     <Descriptions.Item label="chartId">{trace.chartId}</Descriptions.Item>
-                    <Descriptions.Item label="traceId">{trace.traceId}</Descriptions.Item>
-                    <Descriptions.Item label="处理步骤">{trace.events?.length || 0}</Descriptions.Item>
+                    <Descriptions.Item label="处理环节数">{trace.events?.length || 0}</Descriptions.Item>
                     <Descriptions.Item label="待处理问题">{pendingFixCount}</Descriptions.Item>
                   </Descriptions>
+                  <Typography.Text type="secondary" style={{ display: 'block', marginTop: 4 }}>
+                    链路编号 traceId（技术用）：{trace.traceId}
+                  </Typography.Text>
                   {!!failedEvents.length && (
                     <Alert
                       style={{ marginTop: 8 }}
                       type="error"
                       showIcon
-                      message={`当前存在失败步骤：${failedEvents[0]?.eventType || '未知步骤'}`}
+                      message={`当前存在失败步骤：${businessEventLabel(failedEvents[0]?.eventType)}`}
                     />
                   )}
                 </Card>
@@ -461,6 +541,67 @@ const LineageCenter: React.FC = () => {
             </Row>
             <Tabs
               items={[
+                {
+                  key: 'data-lineage',
+                  label: '数据链路',
+                  children: (
+                    <Card>
+                      <Typography.Paragraph>
+                        <Typography.Text strong>当前分析：</Typography.Text> {chartDisplayName}
+                      </Typography.Paragraph>
+                      <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
+                        按时间顺序展示数据经历的环节，便于理解结论来源。需要看节点关系时，可在下方展开关系图。
+                      </Typography.Paragraph>
+                      <Timeline
+                        items={(trace.events || []).map((event) => ({
+                          color: event.status === 'succeed' ? 'green' : event.status === 'failed' ? 'red' : 'blue',
+                          children: (
+                            <Space direction="vertical" size={2}>
+                              <Space wrap>
+                                <Typography.Text strong>{businessEventLabel(event.eventType)}</Typography.Text>
+                                <Tag
+                                  color={
+                                    event.status === 'succeed' ? 'success' : event.status === 'failed' ? 'error' : 'processing'
+                                  }
+                                >
+                                  {event.status === 'succeed'
+                                    ? '已完成'
+                                    : event.status === 'failed'
+                                      ? '异常'
+                                      : event.status || '进行中'}
+                                </Tag>
+                              </Space>
+                              <Typography.Text type="secondary">时间：{String(event.createTime || '-')}</Typography.Text>
+                              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                技术步骤码：{event.eventType || '-'}
+                              </Typography.Text>
+                            </Space>
+                          ),
+                        }))}
+                      />
+                      <Divider />
+                      <Collapse
+                        ghost
+                        items={[
+                          {
+                            key: 'graph',
+                            label: '展开数据关系图（高级，可拖拽、缩放）',
+                            children: lineageGraphChartOption ? (
+                              <>
+                                <Typography.Paragraph type="secondary">
+                                  连线表示数据或结果流向：绿色表示关系有据可查，橙色为一般，红色建议核对。
+                                </Typography.Paragraph>
+                                <ReactECharts option={lineageGraphChartOption} style={{ height: 440, width: '100%' }} />
+                              </>
+                            ) : (
+                              <Typography.Text type="secondary">暂无关系图数据。</Typography.Text>
+                            ),
+                          },
+                        ]}
+                      />
+                    </Card>
+                  ),
+                },
                 {
                   key: 'problem',
                   label: '问题与建议',
@@ -517,24 +658,16 @@ const LineageCenter: React.FC = () => {
                 },
                 {
                   key: 'asset-graph',
-                  label: '数据关系（高级）',
+                  label: '数据关系明细（高级）',
                   children: (
                     <Card>
+                      <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
+                        关系图已移至「数据链路」页折叠面板；此处保留文字明细，便于对照。
+                      </Typography.Paragraph>
                       <Descriptions size="small" column={2} style={{ marginBottom: 8 }}>
                         <Descriptions.Item label="节点数">{graph?.nodes?.length || 0}</Descriptions.Item>
                         <Descriptions.Item label="关系边数">{graph?.edges?.length || 0}</Descriptions.Item>
                       </Descriptions>
-                      {lineageGraphChartOption ? (
-                        <>
-                          <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
-                            力导向图：可缩放、拖拽节点；边颜色表示可信度（绿高 / 橙中 / 红低）。
-                          </Typography.Paragraph>
-                          <ReactECharts option={lineageGraphChartOption} style={{ height: 440, width: '100%' }} />
-                          <Divider plain>关系明细</Divider>
-                        </>
-                      ) : (
-                        <Typography.Paragraph type="secondary">暂无图谱数据，请先完成分析并加载血缘。</Typography.Paragraph>
-                      )}
                       <List
                         size="small"
                         dataSource={graph?.edges || []}
@@ -542,12 +675,18 @@ const LineageCenter: React.FC = () => {
                         renderItem={(edge) => (
                           <List.Item>
                             <Space direction="vertical" size={2}>
-                              <Typography.Text>{`${edge.fromNodeKey} -> ${edge.toNodeKey}`}</Typography.Text>
-                              <Space>
-                                <Tag>{`关系类型：${edge.edgeType}`}</Tag>
-                                <Tag color="blue">{`证据来源：${edge.evidenceSource || 'unknown'}`}</Tag>
+                              <Typography.Text strong>
+                                {businessNodeLine(edge.fromNodeKey, graphNodeLookup)} →{' '}
+                                {businessNodeLine(edge.toNodeKey, graphNodeLookup)}
+                              </Typography.Text>
+                              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                技术标识：{edge.fromNodeKey} → {edge.toNodeKey}
+                              </Typography.Text>
+                              <Space wrap>
+                                <Tag>{`关系：${edgeTypePlain(edge.edgeType)}`}</Tag>
+                                <Tag color="blue">{`依据：${evidenceSourcePlain(edge.evidenceSource)}`}</Tag>
                                 <Tag color={edge.confidence === 'high' ? 'success' : edge.confidence === 'low' ? 'error' : 'warning'}>
-                                  {`可信度：${edge.confidence || 'medium'}`}
+                                  {`可信程度：${confidencePlain(edge.confidence)}`}
                                 </Tag>
                               </Space>
                               {edge.fixSuggestion ? <Typography.Text type="secondary">{edge.fixSuggestion}</Typography.Text> : null}
@@ -582,13 +721,20 @@ const LineageCenter: React.FC = () => {
                             ]}
                           >
                             <Space direction="vertical" size={2}>
-                              <Typography.Text>{`${task.fromNodeKey} -> ${task.toNodeKey}`}</Typography.Text>
-                              <Space>
-                                <Tag>{task.edgeType}</Tag>
+                              <Typography.Text strong>
+                                {businessNodeLine(task.fromNodeKey, graphNodeLookup)} →{' '}
+                                {businessNodeLine(task.toNodeKey, graphNodeLookup)}
+                              </Typography.Text>
+                              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                技术标识：{task.fromNodeKey} → {task.toNodeKey}
+                              </Typography.Text>
+                              <Space wrap>
+                                <Tag>{edgeTypePlain(task.edgeType)}</Tag>
                                 <Tag color={task.status === 'resolved' ? 'success' : 'warning'}>
                                   {task.status === 'resolved' ? '已修复' : '待处理'}
                                 </Tag>
-                                <Tag>{task.evidenceSource || 'unknown'}</Tag>
+                                <Tag>{evidenceSourcePlain(task.evidenceSource)}</Tag>
+                                <Tag>{confidencePlain(task.confidence)}</Tag>
                               </Space>
                             </Space>
                           </List.Item>
