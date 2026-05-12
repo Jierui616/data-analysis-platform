@@ -423,7 +423,7 @@ const AddChart: React.FC = () => {
                     <Space direction="vertical" size={8} style={{ width: '100%' }}>
                       <Form.Item name="file" noStyle>
                         <Upload name="file" maxCount={1}>
-                          <Button icon={<UploadOutlined />}>重新上传 CSV 文件</Button>
+                          <Button icon={<UploadOutlined />}>重新上传文件</Button>
                         </Upload>
                       </Form.Item>
                       <Typography.Text type="secondary">
@@ -437,7 +437,7 @@ const AddChart: React.FC = () => {
                     <Space size={10} align="center">
                       <Form.Item name="file" noStyle>
                         <Upload name="file" maxCount={1}>
-                          <Button icon={<UploadOutlined />}>上传 CSV 文件</Button>
+                          <Button icon={<UploadOutlined />}>上传文件</Button>
                         </Upload>
                       </Form.Item>
                     </Space>
