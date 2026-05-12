@@ -5,9 +5,8 @@ import {
   Button,
   Card,
   Col,
-  Collapse,
   Descriptions,
-  Divider,
+  Empty,
   Input,
   List,
   Result,
@@ -23,6 +22,7 @@ import {
 } from 'antd';
 import ReactECharts from 'echarts-for-react';
 import React, { useEffect, useMemo, useState } from 'react';
+import './index.less';
 
 type LineageEvent = {
   id: number;
@@ -150,6 +150,7 @@ const LineageCenter: React.FC = () => {
   const [graph, setGraph] = useState<LineageGraphData>();
   const [impact, setImpact] = useState<LineageImpactData>();
   const [fixTasks, setFixTasks] = useState<LineageFixTask[]>([]);
+  const [graphDepth, setGraphDepth] = useState(2);
 
   const loadLineage = async (id: string) => {
     if (!id.trim()) {
@@ -160,9 +161,11 @@ const LineageCenter: React.FC = () => {
     try {
       const [traceRes, graphRes, impactRes, fixTaskRes] = await Promise.all([
         request<any>(`/api/lineage/chart/${id}/latest`, { method: 'GET', timeout: 15000 }),
-        request<any>(`/api/lineage/graph/chart/${id}`, { method: 'GET', params: { depth: 2 }, timeout: 15000 }).catch(
-          () => undefined,
-        ),
+        request<any>(`/api/lineage/graph/chart/${id}`, {
+          method: 'GET',
+          params: { depth: graphDepth },
+          timeout: 15000,
+        }).catch(() => undefined),
         request<any>(`/api/lineage/impact/chart/${id}`, { method: 'GET', timeout: 15000 }).catch(() => undefined),
         request<any>(`/api/lineage/fix-tasks/chart/${id}`, { method: 'GET', timeout: 15000 }).catch(() => undefined),
       ]);
@@ -461,36 +464,65 @@ const LineageCenter: React.FC = () => {
   const graphNodeLookup = useMemo(() => buildNodeLookup(graph?.nodes || []), [graph?.nodes]);
 
   return (
-    <div>
-      <Typography.Title level={4}>分析可信度与问题追踪中心</Typography.Title>
-      <Typography.Paragraph type="secondary" style={{ marginTop: -8 }}>
-        帮助你判断本次分析是否可信、问题在哪、该由谁处理。建议先看「数据链路」理解过程，再看「问题与建议」；技术字段集中在高级页签。
-      </Typography.Paragraph>
-      <Card style={{ marginBottom: 12 }}>
-        <Space wrap>
-          <Select
-            style={{ width: 360 }}
-            placeholder="从图表管理与结果回看中选择"
-            value={chartIdInput || undefined}
-            options={chartOptions}
-            onChange={(value) => setChartIdInput(String(value))}
-            showSearch
-            optionFilterProp="label"
-            allowClear
-          />
-          <Input
-            style={{ width: 220 }}
-            placeholder="或输入 chartId"
-            value={chartIdInput}
-            onChange={(e) => setChartIdInput(e.target.value)}
-          />
-          <Button type="primary" onClick={() => loadLineage(chartIdInput)} loading={loading}>
-            查看可信度
-          </Button>
-          <Button onClick={handleRerun} loading={rerunLoading} disabled={!chartIdInput.trim()}>
-            重新生成分析
-          </Button>
-        </Space>
+    <div className="lineageCenterRoot">
+      <div className="lineagePageHeader">
+        <Typography.Title level={4} style={{ marginBottom: 4 }}>
+          分析可信度与问题追踪中心
+        </Typography.Title>
+        <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+          帮助你判断本次分析是否可信、问题在哪、该由谁处理。建议先看「数据链路」理解过程，再看「问题与建议」；技术字段集中在高级页签。
+        </Typography.Paragraph>
+      </div>
+
+      <Card className="lineageFilterCard" style={{ marginBottom: 16 }}>
+        <Row gutter={[12, 12]} align="middle">
+          <Col xs={24} md={14} lg={12} xl={10}>
+            <Select
+              style={{ width: '100%' }}
+              placeholder="从图表管理与结果回看中选择"
+              value={chartIdInput || undefined}
+              options={chartOptions}
+              onChange={(value) => setChartIdInput(String(value))}
+              showSearch
+              optionFilterProp="label"
+              allowClear
+            />
+          </Col>
+          <Col xs={24} md={10} lg={6} xl={5}>
+            <Input
+              style={{ width: '100%' }}
+              placeholder="或输入 chartId"
+              value={chartIdInput}
+              onChange={(e) => setChartIdInput(e.target.value)}
+            />
+          </Col>
+          <Col xs={24} lg={6} xl={4}>
+            <Space direction="vertical" size={4} style={{ width: '100%' }}>
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                关系图展开深度
+              </Typography.Text>
+              <Select
+                style={{ width: '100%' }}
+                value={graphDepth}
+                options={[1, 2, 3, 4, 5].map((d) => ({ label: `${d} 层`, value: d }))}
+                onChange={(v) => setGraphDepth(Number(v))}
+              />
+            </Space>
+          </Col>
+          <Col xs={24} lg={24} xl={5}>
+            <Space wrap>
+              <Button type="primary" onClick={() => loadLineage(chartIdInput)} loading={loading}>
+                查看可信度
+              </Button>
+              <Button onClick={handleRerun} loading={rerunLoading} disabled={!chartIdInput.trim()}>
+                重新生成分析
+              </Button>
+            </Space>
+            <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}>
+              调整「展开深度」后请再次点击「查看可信度」以刷新关系图。
+            </Typography.Paragraph>
+          </Col>
+        </Row>
       </Card>
 
       <Spin spinning={loading}>
@@ -498,36 +530,65 @@ const LineageCenter: React.FC = () => {
           <Result status="info" title="暂未生成本图表的追踪信息" subTitle="请先选择图表并点击“查看可信度”。" />
         ) : (
           <>
-            <Row gutter={12} style={{ marginBottom: 12 }}>
-              <Col xs={24} lg={6}>
-                <Card>
-                  <Descriptions size="small" column={1}>
-                    <Descriptions.Item label="可信度评分">{confidenceScore} / 100</Descriptions.Item>
+            <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
+              <Col xs={24} md={8}>
+                <Card className="lineageSummaryCard" size="small">
+                  <Descriptions size="small" column={1} layout="vertical">
+                    <Descriptions.Item label="可信度评分">
+                      <Typography.Text strong style={{ fontSize: 18 }}>
+                        {confidenceScore}
+                      </Typography.Text>
+                      <Typography.Text type="secondary"> / 100</Typography.Text>
+                    </Descriptions.Item>
                     <Descriptions.Item label="风险等级">
-                      <Tag color={riskLevel === '低风险' ? 'success' : riskLevel === '中风险' ? 'warning' : 'error'}>{riskLevel}</Tag>
+                      <Tag color={riskLevel === '低风险' ? 'success' : riskLevel === '中风险' ? 'warning' : 'error'}>
+                        {riskLevel}
+                      </Tag>
                     </Descriptions.Item>
                   </Descriptions>
                 </Card>
               </Col>
-              <Col xs={24} lg={6}>
-                <Card>
-                  <Descriptions size="small" column={1}>
-                    <Descriptions.Item label="主要问题">{majorIssue}</Descriptions.Item>
-                    <Descriptions.Item label="建议动作">{suggestedAction}</Descriptions.Item>
+              <Col xs={24} md={8}>
+                <Card className="lineageSummaryCard" size="small">
+                  <Descriptions size="small" column={1} layout="vertical">
+                    <Descriptions.Item label="主要问题">
+                      <Typography.Paragraph style={{ marginBottom: 0 }}>{majorIssue}</Typography.Paragraph>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="建议动作">
+                      <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                        {suggestedAction}
+                      </Typography.Paragraph>
+                    </Descriptions.Item>
                   </Descriptions>
                 </Card>
               </Col>
-              <Col xs={24} lg={12}>
-                <Card>
-                  <Descriptions size="small" column={4}>
-                    <Descriptions.Item label="分析对象">{chartDisplayName}</Descriptions.Item>
-                    <Descriptions.Item label="chartId">{trace.chartId}</Descriptions.Item>
+              <Col xs={24} md={8}>
+                <Card className="lineageSummaryCard" size="small">
+                  <Descriptions
+                    size="small"
+                    column={{ xs: 1, sm: 2, lg: 2 }}
+                    layout="vertical"
+                    labelStyle={{ width: 96 }}
+                  >
+                    <Descriptions.Item label="分析对象">
+                      <Typography.Text ellipsis={{ tooltip: chartDisplayName }}>{chartDisplayName}</Typography.Text>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="chartId">
+                      <Typography.Text code className="lineageTechId" copyable={{ text: String(trace.chartId) }}>
+                        {trace.chartId}
+                      </Typography.Text>
+                    </Descriptions.Item>
                     <Descriptions.Item label="处理环节数">{trace.events?.length || 0}</Descriptions.Item>
                     <Descriptions.Item label="待处理问题">{pendingFixCount}</Descriptions.Item>
                   </Descriptions>
-                  <Typography.Text type="secondary" style={{ display: 'block', marginTop: 4 }}>
-                    链路编号 traceId（技术用）：{trace.traceId}
-                  </Typography.Text>
+                  <div className="lineageTechRow">
+                    <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>
+                      链路编号 traceId（技术排障）
+                    </Typography.Text>
+                    <Typography.Text code className="lineageTechId" copyable={{ text: trace.traceId }}>
+                      {trace.traceId}
+                    </Typography.Text>
+                  </div>
                   {!!failedEvents.length && (
                     <Alert
                       style={{ marginTop: 8 }}
@@ -540,65 +601,75 @@ const LineageCenter: React.FC = () => {
               </Col>
             </Row>
             <Tabs
+              type="card"
+              size="middle"
               items={[
                 {
                   key: 'data-lineage',
                   label: '数据链路',
                   children: (
-                    <Card>
-                      <Typography.Paragraph>
-                        <Typography.Text strong>当前分析：</Typography.Text> {chartDisplayName}
+                    <Card styles={{ body: { padding: 16 } }}>
+                      <Typography.Paragraph style={{ marginBottom: 12 }}>
+                        <Typography.Text strong>当前分析：</Typography.Text>{' '}
+                        <Typography.Text ellipsis={{ tooltip: chartDisplayName }}>{chartDisplayName}</Typography.Text>
                       </Typography.Paragraph>
                       <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
-                        按时间顺序展示数据经历的环节，便于理解结论来源。需要看节点关系时，可在下方展开关系图。
+                        左侧为处理环节时间线；右侧为数据关系图（可拖拽、滚轮缩放）。连线颜色：绿=有据可查，橙=一般，红=建议核对。
                       </Typography.Paragraph>
-                      <Timeline
-                        items={(trace.events || []).map((event) => ({
-                          color: event.status === 'succeed' ? 'green' : event.status === 'failed' ? 'red' : 'blue',
-                          children: (
-                            <Space direction="vertical" size={2}>
-                              <Space wrap>
-                                <Typography.Text strong>{businessEventLabel(event.eventType)}</Typography.Text>
-                                <Tag
-                                  color={
-                                    event.status === 'succeed' ? 'success' : event.status === 'failed' ? 'error' : 'processing'
-                                  }
-                                >
-                                  {event.status === 'succeed'
-                                    ? '已完成'
-                                    : event.status === 'failed'
-                                      ? '异常'
-                                      : event.status || '进行中'}
-                                </Tag>
-                              </Space>
-                              <Typography.Text type="secondary">时间：{String(event.createTime || '-')}</Typography.Text>
-                              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                                技术步骤码：{event.eventType || '-'}
-                              </Typography.Text>
-                            </Space>
-                          ),
-                        }))}
-                      />
-                      <Divider />
-                      <Collapse
-                        ghost
-                        items={[
-                          {
-                            key: 'graph',
-                            label: '展开数据关系图（高级，可拖拽、缩放）',
-                            children: lineageGraphChartOption ? (
-                              <>
-                                <Typography.Paragraph type="secondary">
-                                  连线表示数据或结果流向：绿色表示关系有据可查，橙色为一般，红色建议核对。
-                                </Typography.Paragraph>
-                                <ReactECharts option={lineageGraphChartOption} style={{ height: 440, width: '100%' }} />
-                              </>
+                      <Row gutter={[16, 16]}>
+                        <Col xs={24} lg={10} xl={9}>
+                          <Typography.Text strong style={{ display: 'block', marginBottom: 12 }}>
+                            处理环节
+                          </Typography.Text>
+                          <Timeline
+                            items={(trace.events || []).map((event) => ({
+                              color: event.status === 'succeed' ? 'green' : event.status === 'failed' ? 'red' : 'blue',
+                              children: (
+                                <Space direction="vertical" size={2}>
+                                  <Space wrap>
+                                    <Typography.Text strong>{businessEventLabel(event.eventType)}</Typography.Text>
+                                    <Tag
+                                      color={
+                                        event.status === 'succeed'
+                                          ? 'success'
+                                          : event.status === 'failed'
+                                            ? 'error'
+                                            : 'processing'
+                                      }
+                                    >
+                                      {event.status === 'succeed'
+                                        ? '已完成'
+                                        : event.status === 'failed'
+                                          ? '异常'
+                                          : event.status || '进行中'}
+                                    </Tag>
+                                  </Space>
+                                  <Typography.Text type="secondary">时间：{String(event.createTime || '-')}</Typography.Text>
+                                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                    技术步骤码：{event.eventType || '-'}
+                                  </Typography.Text>
+                                </Space>
+                              ),
+                            }))}
+                          />
+                        </Col>
+                        <Col xs={24} lg={14} xl={15}>
+                          <Card
+                            className="lineageGraphCard"
+                            size="small"
+                            title="数据关系图"
+                            styles={{ header: { minHeight: 40 } }}
+                          >
+                            {lineageGraphChartOption ? (
+                              <div className="lineageGraphWrap">
+                                <ReactECharts option={lineageGraphChartOption} style={{ height: 480, width: '100%' }} />
+                              </div>
                             ) : (
-                              <Typography.Text type="secondary">暂无关系图数据。</Typography.Text>
-                            ),
-                          },
-                        ]}
-                      />
+                              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无关系图数据" />
+                            )}
+                          </Card>
+                        </Col>
+                      </Row>
                     </Card>
                   ),
                 },
@@ -662,7 +733,7 @@ const LineageCenter: React.FC = () => {
                   children: (
                     <Card>
                       <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
-                        关系图已移至「数据链路」页折叠面板；此处保留文字明细，便于对照。
+                        关系图在「数据链路」页右侧同步展示；此处保留文字明细，便于检索与对照。
                       </Typography.Paragraph>
                       <Descriptions size="small" column={2} style={{ marginBottom: 8 }}>
                         <Descriptions.Item label="节点数">{graph?.nodes?.length || 0}</Descriptions.Item>

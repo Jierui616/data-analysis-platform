@@ -591,7 +591,9 @@ const BIOperationScreen: React.FC = () => {
       // 注意：图表 id 常为雪花 Long，不能用 Number() 再传给接口，否则 JS 精度丢失会取错图、读不到 chartData
       if (selectedChartId && chartDateAppliedForIdRef.current !== selectedChartId) {
         try {
-          const chartRes = await getChartByIdUsingGET({ id: selectedChartId as API.getChartByIdUsingGETParams['id'] });
+          const chartRes = await getChartByIdUsingGET({
+            id: selectedChartId as unknown as API.getChartByIdUsingGETParams['id'],
+          });
           const parsed = parseDateRangeFromRestaurantChartCsv(chartRes?.data?.chartData);
           chartDateAppliedForIdRef.current = selectedChartId;
           if (parsed) {
