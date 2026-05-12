@@ -1,33 +1,89 @@
+/* 嵌入 Pro 侧栏内：留白收紧、中间地图略放大，贴近常见「顶栏+KPI+三列」大屏密度 */
 .biOpRoot {
-  --gap: 10px;
-  --panel-border: rgba(92, 174, 255, 0.36);
-  --panel-bg: linear-gradient(180deg, rgba(9, 30, 69, 0.72), rgba(6, 22, 53, 0.72));
+  --gap: 6px;
+  --panel-border: rgba(125, 198, 214, 0.26);
+  --panel-bg: linear-gradient(180deg, rgba(16, 42, 62, 0.78), rgba(10, 28, 44, 0.82));
   position: relative;
   height: 100%;
-  padding: 10px 12px 12px;
+  padding: 6px 6px 8px;
   box-sizing: border-box;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: var(--gap);
   background:
-    radial-gradient(circle at 50% -10%, rgba(55, 133, 255, 0.24) 0%, rgba(55, 133, 255, 0) 35%),
-    radial-gradient(circle at 50% 55%, rgba(26, 67, 151, 0.2) 0%, rgba(26, 67, 151, 0) 42%),
-    #020a1c;
+    radial-gradient(circle at 50% -8%, rgba(59, 130, 246, 0.16) 0%, rgba(59, 130, 246, 0) 36%),
+    radial-gradient(circle at 50% 52%, rgba(34, 211, 238, 0.05) 0%, rgba(34, 211, 238, 0) 44%),
+    linear-gradient(180deg, #0f2438 0%, #0b1a2a 52%, #081420 100%);
+}
+
+/* 区域内滚动条：细轨道 + 半透明滑块，弱化系统默认粗白条；Firefox 同步 scrollbar-color */
+.biOpRoot .biOpLeft,
+.biOpRoot .biOpRight,
+.biOpRoot .biOpMonitorGrid,
+.biOpRoot .biOpHqRankWrap .secList,
+.biOpRoot .biOpMiniList,
+.biOpRoot .biOpEventTicker,
+.biOpRoot .biOpHeaderControls {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(125, 198, 214, 0.4) rgba(6, 18, 30, 0.62);
+}
+
+.biOpRoot .biOpLeft::-webkit-scrollbar,
+.biOpRoot .biOpRight::-webkit-scrollbar,
+.biOpRoot .biOpMonitorGrid::-webkit-scrollbar,
+.biOpRoot .biOpHqRankWrap .secList::-webkit-scrollbar,
+.biOpRoot .biOpMiniList::-webkit-scrollbar,
+.biOpRoot .biOpEventTicker::-webkit-scrollbar,
+.biOpRoot .biOpHeaderControls::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.biOpRoot .biOpLeft::-webkit-scrollbar-track,
+.biOpRoot .biOpRight::-webkit-scrollbar-track,
+.biOpRoot .biOpMonitorGrid::-webkit-scrollbar-track,
+.biOpRoot .biOpHqRankWrap .secList::-webkit-scrollbar-track,
+.biOpRoot .biOpMiniList::-webkit-scrollbar-track,
+.biOpRoot .biOpEventTicker::-webkit-scrollbar-track,
+.biOpRoot .biOpHeaderControls::-webkit-scrollbar-track {
+  background: rgba(6, 18, 30, 0.62);
+  border-radius: 3px;
+}
+
+.biOpRoot .biOpLeft::-webkit-scrollbar-thumb,
+.biOpRoot .biOpRight::-webkit-scrollbar-thumb,
+.biOpRoot .biOpMonitorGrid::-webkit-scrollbar-thumb,
+.biOpRoot .biOpHqRankWrap .secList::-webkit-scrollbar-thumb,
+.biOpRoot .biOpMiniList::-webkit-scrollbar-thumb,
+.biOpRoot .biOpEventTicker::-webkit-scrollbar-thumb,
+.biOpRoot .biOpHeaderControls::-webkit-scrollbar-thumb {
+  background: rgba(125, 198, 214, 0.38);
+  border-radius: 3px;
+}
+
+.biOpRoot .biOpLeft::-webkit-scrollbar-thumb:hover,
+.biOpRoot .biOpRight::-webkit-scrollbar-thumb:hover,
+.biOpRoot .biOpMonitorGrid::-webkit-scrollbar-thumb:hover,
+.biOpRoot .biOpHqRankWrap .secList::-webkit-scrollbar-thumb:hover,
+.biOpRoot .biOpMiniList::-webkit-scrollbar-thumb:hover,
+.biOpRoot .biOpEventTicker::-webkit-scrollbar-thumb:hover,
+.biOpRoot .biOpHeaderControls::-webkit-scrollbar-thumb:hover {
+  background: rgba(125, 211, 230, 0.52);
 }
 
 .biOpHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 8px 10px;
-  min-height: 46px;
+  gap: 6px;
+  padding: 4px 8px;
+  min-height: 36px;
   flex: 0 0 auto;
-  border: 1px solid rgba(102, 200, 255, 0.32);
-  background: rgba(4, 17, 45, 0.72);
-  box-shadow: inset 0 0 28px rgba(102, 200, 255, 0.12);
-  border-radius: 10px;
+  border: 1px solid rgba(125, 198, 214, 0.28);
+  background: rgba(12, 28, 44, 0.82);
+  box-shadow: inset 0 0 28px rgba(59, 130, 246, 0.1);
+  border-radius: 8px;
 }
 
 .biOpHeaderControls {
@@ -37,71 +93,178 @@
   min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
+
+  /* 顶栏控件深色「玻璃」风格，与大屏背景统一，避免 Ant 默认白底卡片 */
   :global(.ant-space) {
     white-space: nowrap;
-    column-gap: 8px !important;
+    column-gap: 6px !important;
+    row-gap: 4px !important;
   }
+
   :global(.ant-segmented) {
-    margin-right: 6px;
+    margin-right: 4px;
+    padding: 1px;
+    font-size: 12px;
+    background: rgba(14, 32, 50, 0.92);
+    border: 1px solid rgba(125, 198, 214, 0.38);
+  }
+  :global(.ant-segmented-item) {
+    line-height: 22px;
+    padding: 0 10px;
+    color: rgba(210, 238, 255, 0.88);
+  }
+  :global(.ant-segmented-item:hover:not(.ant-segmented-item-selected)) {
+    color: #fff;
+  }
+  :global(.ant-segmented-item-selected) {
+    background: linear-gradient(180deg, rgba(59, 130, 246, 0.55), rgba(37, 99, 235, 0.5)) !important;
+    color: #fff !important;
+    box-shadow: inset 0 0 10px rgba(125, 198, 214, 0.2);
+  }
+  :global(.ant-segmented-thumb) {
+    background: linear-gradient(180deg, rgba(59, 130, 246, 0.45), rgba(37, 99, 235, 0.4)) !important;
+  }
+
+  :global(.ant-select .ant-select-selector) {
+    min-height: 28px;
+    padding: 0 8px;
+    align-items: center;
+    background: rgba(14, 32, 50, 0.92) !important;
+    border-color: rgba(125, 198, 214, 0.38) !important;
+    color: #d6efff !important;
+  }
+  :global(.ant-select:not(.ant-select-disabled):hover .ant-select-selector),
+  :global(.ant-select-focused .ant-select-selector) {
+    border-color: rgba(34, 211, 238, 0.55) !important;
+  }
+  :global(.ant-select-selection-item),
+  :global(.ant-select-selection-placeholder) {
+    color: #d6efff !important;
+  }
+  :global(.ant-select-selection-placeholder) {
+    opacity: 0.55;
+  }
+  :global(.ant-select-arrow),
+  :global(.ant-select-clear) {
+    color: rgba(159, 212, 255, 0.88);
+  }
+
+  :global(.ant-picker) {
+    padding: 2px 6px;
+    background: rgba(14, 32, 50, 0.92) !important;
+    border-color: rgba(125, 198, 214, 0.38) !important;
+    color: #d6efff !important;
+  }
+  :global(.ant-picker:hover),
+  :global(.ant-picker-focused) {
+    border-color: rgba(34, 211, 238, 0.55) !important;
+  }
+  :global(.ant-picker-input > input) {
+    color: #d6efff !important;
+  }
+  :global(.ant-picker-input > input::placeholder) {
+    color: rgba(159, 212, 255, 0.45);
+  }
+  :global(.ant-picker-separator),
+  :global(.ant-picker-suffix),
+  :global(.ant-picker-clear) {
+    color: rgba(159, 212, 255, 0.88) !important;
+  }
+
+  :global(.ant-btn.ant-btn-sm) {
+    font-size: 12px;
+    padding-inline: 8px;
+  }
+  :global(.ant-btn-default.ant-btn-sm) {
+    background: rgba(14, 32, 50, 0.92) !important;
+    border-color: rgba(125, 198, 214, 0.38) !important;
+    color: #bae6fd !important;
+  }
+  :global(.ant-btn-default.ant-btn-sm:hover) {
+    border-color: rgba(34, 211, 238, 0.65) !important;
+    color: #fff !important;
+    background: rgba(20, 48, 72, 0.96) !important;
+  }
+  :global(.ant-btn-primary.ant-btn-sm) {
+    border-color: rgba(59, 130, 246, 0.9) !important;
+    background: linear-gradient(180deg, rgba(59, 130, 246, 0.96), rgba(37, 99, 235, 0.92)) !important;
+    color: #fff !important;
+  }
+  :global(.ant-btn-primary.ant-btn-sm:hover:not(:disabled)) {
+    border-color: rgba(34, 211, 238, 0.75) !important;
+    filter: brightness(1.06);
+  }
+  :global(.ant-btn-primary.ant-btn-sm:disabled) {
+    opacity: 0.42;
   }
 }
 
 .biOpHeaderTitle {
   text-align: center;
-  color: #9fd4ff;
+  color: #bae6fd;
   font-size: 28px;
   letter-spacing: 2px;
   font-weight: 700;
-  text-shadow: 0 0 14px rgba(102, 200, 255, 0.72);
+  text-shadow: 0 0 14px rgba(34, 211, 238, 0.28);
 }
 
 .biOpHeaderLeft {
-  color: #89b9f6;
-  font-size: 12px;
+  color: rgba(159, 212, 255, 0.82);
+  font-size: 11px;
   text-align: left;
   white-space: nowrap;
+  flex: 0 0 auto;
+  max-width: 42%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .biOpHeaderRight {
-  color: #89b9f6;
-  font-size: 12px;
+  color: rgba(159, 212, 255, 0.78);
+  font-size: 11px;
   text-align: right;
   white-space: nowrap;
+  flex: 0 0 auto;
+  max-width: 38%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .biOpTopStats {
   flex: 0 0 auto;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .biOpTopStat {
-  border: 1px solid rgba(81, 164, 255, 0.42);
-  background: linear-gradient(180deg, rgba(28, 76, 163, 0.24), rgba(8, 27, 66, 0.52));
-  box-shadow: inset 0 0 16px rgba(88, 185, 255, 0.15);
-  border-radius: 6px;
-  padding: 8px 10px;
+  border: 1px solid rgba(125, 198, 214, 0.28);
+  background: linear-gradient(180deg, rgba(22, 58, 88, 0.32), rgba(8, 24, 38, 0.55));
+  box-shadow: inset 0 0 16px rgba(59, 130, 246, 0.12);
+  border-radius: 4px;
+  padding: 4px 8px;
 
   .label {
     color: #7fb0ec;
-    font-size: 12px;
+    font-size: 11px;
+    line-height: 1.2;
   }
   .value {
-    margin-top: 4px;
+    margin-top: 2px;
     color: #d6efff;
     font-weight: 700;
-    font-size: 20px;
-    text-shadow: 0 0 10px rgba(95, 191, 255, 0.52);
+    font-size: 17px;
+    line-height: 1.15;
+    text-shadow: 0 0 10px rgba(59, 130, 246, 0.35);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   .sub {
-    margin-top: 2px;
+    margin-top: 1px;
     color: #7ea9de;
-    font-size: 11px;
-    line-height: 1.3;
+    font-size: 10px;
+    line-height: 1.25;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -129,8 +292,10 @@
 
 .biOpGrid {
   display: grid;
-  grid-template-columns: minmax(310px, 22%) minmax(0, 1fr) minmax(280px, 19%);
-  gap: 10px;
+  /* 侧栏已占宽：左右略收、中间弹性区略大，利于地图与主图 */
+  grid-template-columns: minmax(232px, 19.5%) minmax(0, 1fr) minmax(212px, 18%);
+  column-gap: 3px;
+  row-gap: 4px;
   align-items: stretch;
   height: 100%;
   min-height: 0;
@@ -138,17 +303,18 @@
 }
 
 .biOpGrid--hq {
-  grid-template-columns: minmax(330px, 24%) minmax(0, 54%) minmax(300px, 22%);
+  grid-template-columns: minmax(248px, 20.5%) minmax(0, 1fr) minmax(228px, 19%);
 }
 
 .biOpPanel {
   border: 1px solid var(--panel-border);
   background: var(--panel-bg);
-  box-shadow: inset 0 0 18px rgba(102, 200, 255, 0.12);
-  border-radius: 6px;
-  padding: 8px 8px 10px;
+  box-shadow: inset 0 0 18px rgba(125, 198, 214, 0.12);
+  border-radius: 4px;
+  padding: 5px 6px 6px;
   margin-bottom: 0;
   min-height: 0;
+  height: 100%;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -157,71 +323,88 @@
 .biOpLeft,
 .biOpRight {
   display: grid;
-  grid-template-rows: minmax(220px, 1.1fr) minmax(180px, 1fr) minmax(170px, 0.9fr);
-  gap: 10px;
-  font-size: 12px;
+  /* 三等分垂直空间，减少「上大下小」留白 */
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 4px;
+  font-size: 11px;
   min-height: 0;
   overflow: auto;
-  scrollbar-gutter: stable;
 }
 
 .biOpLeft--hq {
-  grid-template-rows: minmax(200px, 0.92fr) minmax(140px, 0.58fr) minmax(160px, 0.8fr);
+  grid-template-rows: minmax(120px, 1.05fr) minmax(100px, 0.88fr) minmax(96px, 0.82fr);
 }
 
 .biOpRight--hq {
-  grid-template-rows: minmax(110px, 0.86fr) minmax(92px, 0.54fr) minmax(130px, 0.8fr);
+  grid-template-rows: minmax(88px, 1fr) minmax(72px, 0.85fr) minmax(100px, 0.95fr);
 }
 
 .biOpLeft--store {
-  grid-template-rows: minmax(188px, 1.02fr) minmax(132px, 0.82fr) minmax(150px, 0.72fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
 }
 
 .biOpRight--store {
-  grid-template-rows: minmax(176px, 0.98fr) minmax(136px, 0.86fr) minmax(132px, 0.68fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
 }
 
-.biOpMid,
+.biOpMid {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
 .biOpMapPanel {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
   min-height: 0;
   height: 100%;
   overflow: hidden;
 }
 
 .biOpPanelTitle {
-  color: #79bcff;
-  font-size: 14px;
-  margin-bottom: 6px;
+  color: #93c5fd;
+  font-size: 12px;
+  margin-bottom: 4px;
   font-weight: 600;
-  text-shadow: 0 0 10px rgba(102, 200, 255, 0.6);
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.22);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
+  line-height: 1.25;
+  flex: 0 0 auto;
 }
 
 .biOpMonitorGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  /* 少量门店时自动拉满宽度，避免左侧一块卡、右侧大块空 */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 132px), 1fr));
+  gap: 5px;
   min-height: 0;
-  overflow: auto;
-  padding-right: 2px;
+  flex: 1 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: 0;
+  align-content: start;
 }
 
 .biOpHqRankWrap {
   min-height: 0;
+  flex: 1 1 auto;
   display: grid;
   grid-template-rows: 1fr 1fr;
-  gap: 10px;
+  gap: 6px;
   overflow: hidden;
 
   .sec {
     min-height: 0;
-    border: 1px solid rgba(97, 176, 255, 0.22);
-    background: radial-gradient(circle at 30% 20%, rgba(40, 134, 237, 0.18), rgba(10, 40, 92, 0.18));
-    border-radius: 6px;
-    padding: 8px;
+    border: 1px solid rgba(125, 198, 214, 0.18);
+    background: radial-gradient(circle at 30% 20%, rgba(59, 130, 246, 0.12), rgba(8, 22, 34, 0.35));
+    border-radius: 4px;
+    padding: 5px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -229,9 +412,9 @@
 
   .secTitle {
     color: rgba(214, 239, 255, 0.92);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -242,17 +425,17 @@
     overflow: auto;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    padding-right: 2px;
+    gap: 4px;
+    padding-right: 0;
   }
 
   .row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 6px;
     border-bottom: 1px dashed rgba(122, 191, 255, 0.18);
-    padding-bottom: 6px;
+    padding-bottom: 4px;
   }
 
   .left {
@@ -269,8 +452,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: rgba(43, 145, 255, 0.35);
-    border: 1px solid rgba(119, 203, 255, 0.35);
+    background: rgba(59, 130, 246, 0.32);
+    border: 1px solid rgba(125, 198, 214, 0.3);
     color: rgba(236, 247, 255, 0.92);
     font-size: 11px;
     flex: 0 0 auto;
@@ -279,7 +462,7 @@
   .nm {
     min-width: 0;
     color: #d6e7ff;
-    font-size: 12px;
+    font-size: 11px;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -291,7 +474,7 @@
     align-items: center;
     gap: 6px;
     color: #f4d585;
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .tag {
@@ -321,23 +504,28 @@
 }
 
 .biOpMonitorItem {
-  min-height: 64px;
-  border: 1px solid rgba(97, 176, 255, 0.34);
-  background: radial-gradient(circle at 30% 20%, rgba(40, 134, 237, 0.25), rgba(10, 40, 92, 0.2));
-  padding: 8px;
+  min-width: 0;
+  min-height: 48px;
+  border: 1px solid rgba(125, 198, 214, 0.16);
+  background: linear-gradient(165deg, rgba(18, 48, 72, 0.45), rgba(10, 28, 42, 0.55));
+  padding: 6px 8px;
   border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
 
   .name {
     color: #d8ebff;
-    font-size: 12px;
-    white-space: nowrap;
+    font-size: 11px;
+    line-height: 1.35;
     overflow: hidden;
-    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    word-break: break-word;
   }
   .desc {
-    margin-top: 6px;
-    color: #72b9ff;
-    font-size: 11px;
+    margin-top: 4px;
+    color: #7dd3fc;
+    font-size: 10px;
   }
 }
 
@@ -345,10 +533,86 @@
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
+  /* 墨玉青蓝：中心略亮、边缘收进深青灰，避免纯黑底 */
   background:
-    radial-gradient(circle at 50% 44%, rgba(96, 208, 255, 0.16) 0%, rgba(54, 142, 255, 0.10) 36%, rgba(6, 16, 40, 0.04) 100%),
-    radial-gradient(circle at 50% 68%, rgba(66, 196, 255, 0.18) 0%, rgba(66, 196, 255, 0) 52%);
+    radial-gradient(ellipse 92% 78% at 50% 44%, rgba(22, 58, 88, 0.55) 0%, rgba(12, 36, 56, 0.78) 52%, rgba(6, 20, 34, 0.92) 100%),
+    linear-gradient(185deg, rgba(16, 44, 68, 0.5) 0%, rgba(8, 26, 42, 0.82) 100%);
   overflow: hidden;
+}
+
+/* ① 缓慢呼吸光晕 */
+@keyframes biOpMapBreathe {
+  0%,
+  100% {
+    opacity: 0.52;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.88;
+    transform: scale(1.06);
+  }
+}
+
+.biOpMapAmbient {
+  position: absolute;
+  inset: -6%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 40% 36%, rgba(34, 211, 238, 0.14) 0%, transparent 46%),
+    radial-gradient(circle at 62% 58%, rgba(59, 130, 246, 0.12) 0%, transparent 52%),
+    radial-gradient(circle at 50% 88%, rgba(125, 198, 214, 0.1) 0%, transparent 44%);
+  animation: biOpMapBreathe 7s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+/* ③ 扫描线（锥形渐变旋转） */
+@keyframes biOpMapSweepRotate {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.biOpMapSweep {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 170%;
+  height: 170%;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: 50%;
+  opacity: 0.62;
+  background: conic-gradient(
+    from 200deg at 50% 50%,
+    transparent 0deg,
+    transparent 250deg,
+    rgba(34, 211, 238, 0.12) 285deg,
+    rgba(125, 198, 214, 0.16) 310deg,
+    rgba(59, 130, 246, 0.1) 335deg,
+    transparent 360deg
+  );
+  mix-blend-mode: screen;
+  animation: biOpMapSweepRotate 14s linear infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .biOpMapAmbient,
+  .biOpMapSweep {
+    animation: none !important;
+  }
+  .biOpMapAmbient {
+    opacity: 0.62;
+    transform: none;
+  }
+  .biOpMapSweep {
+    opacity: 0.32;
+    transform: translate(-50%, -50%) rotate(25deg);
+  }
 }
 
 
@@ -374,28 +638,29 @@
   z-index: 2;
   font-size: 11px;
   color: rgba(210, 238, 255, 0.78);
-  background: rgba(3, 14, 38, 0.55);
-  border: 1px solid rgba(102, 200, 255, 0.18);
+  background: rgba(6, 18, 30, 0.62);
+  border: 1px solid rgba(125, 198, 214, 0.18);
   padding: 2px 6px;
   border-radius: 4px;
   pointer-events: none;
 }
 
 .biOpEventTicker {
-  margin-top: 6px;
-  max-height: 88px;
+  margin-top: 4px;
+  max-height: 64px;
+  flex: 0 0 auto;
   overflow-y: auto;
   overflow-x: hidden;
-  border-top: 1px solid rgba(89, 173, 255, 0.28);
-  padding-top: 4px;
+  border-top: 1px solid rgba(125, 198, 214, 0.22);
+  padding-top: 3px;
 
   .event {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     color: #b8dcff;
-    font-size: 12px;
-    margin-bottom: 4px;
+    font-size: 11px;
+    margin-bottom: 3px;
   }
   .tag {
     display: inline-block;
@@ -403,8 +668,8 @@
     text-align: center;
     font-size: 11px;
     color: #ecf7ff;
-    background: rgba(43, 145, 255, 0.6);
-    border: 1px solid rgba(119, 203, 255, 0.55);
+    background: rgba(59, 130, 246, 0.52);
+    border: 1px solid rgba(125, 198, 214, 0.42);
     border-radius: 3px;
     padding: 1px 4px;
   }
@@ -423,8 +688,7 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-right: 2px;
-  scrollbar-gutter: stable;
+  padding-right: 0;
 }
 
 .biOpMiniRow {
@@ -432,11 +696,11 @@
   justify-content: flex-start;
   align-items: flex-start;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   color: #cfe5ff;
-  font-size: 12px;
+  font-size: 11px;
   border-bottom: 1px dashed rgba(122, 191, 255, 0.18);
-  padding-bottom: 4px;
+  padding-bottom: 3px;
 
   .name {
     width: 100%;
@@ -487,64 +751,104 @@
 
 @media (max-width: 1600px) {
   .biOpRoot {
-    --gap: 8px;
+    --gap: 5px;
   }
   .biOpTopStats {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 8px;
+    gap: 5px;
   }
   .biOpGrid {
-    grid-template-columns: minmax(270px, 22%) minmax(0, 1fr) minmax(248px, 19%);
+    grid-template-columns: minmax(218px, 19%) minmax(0, 1fr) minmax(200px, 17.5%);
   }
   .biOpGrid--hq {
-    grid-template-columns: minmax(280px, 23%) minmax(0, 56%) minmax(252px, 21%);
+    grid-template-columns: minmax(228px, 20%) minmax(0, 1fr) minmax(210px, 18.5%);
   }
   .biOpTopStat .value {
-    font-size: 19px;
+    font-size: 16px;
   }
 }
 
 @media (max-width: 1366px) {
   .biOpRoot {
-    padding: 8px;
+    padding: 5px 6px 6px;
   }
   .biOpHeader {
-    padding: 6px 8px;
-  }
-  .biOpHeaderControls {
-    :global(.ant-space) {
-      column-gap: 6px !important;
-    }
+    padding: 3px 6px;
+    min-height: 34px;
   }
   .biOpGrid {
-    grid-template-columns: minmax(236px, 23%) minmax(0, 1fr) minmax(212px, 20%);
-    gap: 8px;
+    grid-template-columns: minmax(200px, 20%) minmax(0, 1fr) minmax(184px, 18%);
+    column-gap: 2px;
+    row-gap: 4px;
   }
   .biOpGrid--hq {
-    grid-template-columns: minmax(246px, 23%) minmax(0, 56%) minmax(220px, 21%);
+    grid-template-columns: minmax(210px, 20.5%) minmax(0, 1fr) minmax(196px, 19%);
   }
   .biOpLeft,
   .biOpRight {
-    grid-template-rows: minmax(200px, 1.05fr) minmax(170px, 1fr) minmax(160px, 0.9fr);
-    gap: 8px;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: 5px;
   }
   .biOpLeft--hq {
-    grid-template-rows: minmax(165px, 0.9fr) minmax(125px, 0.7fr) minmax(150px, 0.84fr);
+    grid-template-rows: minmax(108px, 1fr) minmax(92px, 0.9fr) minmax(88px, 0.85fr);
   }
   .biOpRight--hq {
-    grid-template-rows: minmax(100px, 0.72fr) minmax(82px, 0.54fr) minmax(116px, 0.8fr);
-  }
-  .biOpLeft--store {
-    grid-template-rows: minmax(170px, 1fr) minmax(120px, 0.8fr) minmax(132px, 0.66fr);
-  }
-  .biOpRight--store {
-    grid-template-rows: minmax(156px, 0.92fr) minmax(124px, 0.82fr) minmax(116px, 0.62fr);
+    grid-template-rows: minmax(76px, 1fr) minmax(64px, 0.88fr) minmax(88px, 0.95fr);
   }
   .biOpPanelTitle {
-    font-size: 13px;
+    font-size: 11px;
   }
   .biOpTopStat .value {
-    font-size: 18px;
+    font-size: 15px;
   }
 }
 
+/* 挂到 body 的下拉/日历面板：与顶栏同色，避免展开后仍是白块 */
+.biOpSelectDropdown.ant-select-dropdown {
+  padding: 4px;
+  background: rgba(10, 28, 42, 0.98) !important;
+  border: 1px solid rgba(125, 198, 214, 0.32);
+  border-radius: 6px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+.biOpSelectDropdown .rc-virtual-list-holder-inner,
+.biOpSelectDropdown .ant-select-item {
+  border-radius: 4px;
+}
+.biOpSelectDropdown .ant-select-item {
+  color: #e4f2ff;
+}
+.biOpSelectDropdown .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+  font-weight: 600;
+  background: rgba(59, 130, 246, 0.38) !important;
+  color: #fff !important;
+}
+.biOpSelectDropdown .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+  background: rgba(59, 130, 246, 0.22) !important;
+}
+
+.biOpPickerDropdown.ant-picker-dropdown .ant-picker-panel-container {
+  background: rgba(10, 28, 42, 0.98) !important;
+  border: 1px solid rgba(125, 198, 214, 0.32);
+  border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+.biOpPickerDropdown .ant-picker-header,
+.biOpPickerDropdown .ant-picker-content th,
+.biOpPickerDropdown .ant-picker-cell-in-view {
+  color: rgba(220, 240, 255, 0.92);
+}
+.biOpPickerDropdown .ant-picker-cell:hover .ant-picker-cell-inner {
+  background: rgba(59, 130, 246, 0.22) !important;
+}
+.biOpPickerDropdown .ant-picker-cell-selected .ant-picker-cell-inner,
+.biOpPickerDropdown .ant-picker-cell-range-start .ant-picker-cell-inner,
+.biOpPickerDropdown .ant-picker-cell-range-end .ant-picker-cell-inner {
+  background: rgba(59, 130, 246, 0.55) !important;
+}
+
+.biOpHeaderToolbar.ant-space {
+  width: 100%;
+  min-width: 0;
+  flex: 1;
+  justify-content: center;
+}

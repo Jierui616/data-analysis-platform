@@ -2,7 +2,8 @@ import { history } from '@umijs/max';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
-import { Button, DatePicker, Segmented, Select, Skeleton, Space, Spin, message } from 'antd';
+import { Button, ConfigProvider, DatePicker, Segmented, Select, Skeleton, Space, Spin, message } from 'antd';
+import type { ThemeConfig } from 'antd/es/config-provider/context';
 import dayjs from 'dayjs';
 import { getChartByIdUsingGET, listMyChartByPageUsingPOST } from '@/services/yubi/chartController';
 import {
@@ -23,14 +24,61 @@ import './index.less';
 type ViewKey = 'hq' | 'store' | 'region';
 const BI_OP_VIEW_STORAGE_KEY = 'bi_operation_screen_view';
 
+/** 顶栏 Ant 控件：墨玉青蓝（方案 B）— 青灰底 + 主蓝 + 青色高光 */
+const BI_OP_HEADER_THEME: ThemeConfig = {
+  components: {
+    Segmented: {
+      trackBg: 'rgba(14, 32, 50, 0.96)',
+      itemColor: 'rgba(226, 240, 248, 0.9)',
+      itemHoverColor: '#ffffff',
+      itemHoverBg: 'rgba(59, 130, 246, 0.2)',
+      itemSelectedBg: 'rgba(59, 130, 246, 0.48)',
+      itemSelectedColor: '#ffffff',
+      itemActiveBg: 'rgba(59, 130, 246, 0.3)',
+    },
+    Select: {
+      colorBgContainer: 'rgba(14, 32, 50, 0.96)',
+      colorBorder: 'rgba(125, 198, 214, 0.34)',
+      colorText: '#e8f4ff',
+      colorTextPlaceholder: 'rgba(148, 208, 230, 0.45)',
+      colorTextQuaternary: 'rgba(170, 218, 235, 0.78)',
+      colorTextTertiary: 'rgba(170, 218, 235, 0.7)',
+      activeBorderColor: 'rgba(34, 211, 238, 0.55)',
+      hoverBorderColor: 'rgba(34, 211, 238, 0.45)',
+      controlOutline: 'rgba(59, 130, 246, 0.35)',
+    },
+    DatePicker: {
+      colorBgContainer: 'rgba(14, 32, 50, 0.96)',
+      colorBorder: 'rgba(125, 198, 214, 0.34)',
+      colorText: '#e8f4ff',
+      colorTextPlaceholder: 'rgba(148, 208, 230, 0.45)',
+      activeBorderColor: 'rgba(34, 211, 238, 0.55)',
+      hoverBorderColor: 'rgba(34, 211, 238, 0.45)',
+      colorSplit: 'rgba(125, 198, 214, 0.36)',
+      cellActiveWithRangeBg: 'rgba(59, 130, 246, 0.22)',
+    },
+    Button: {
+      defaultBg: 'rgba(14, 32, 50, 0.96)',
+      defaultColor: '#bae6fd',
+      defaultBorderColor: 'rgba(125, 198, 214, 0.34)',
+      defaultHoverBg: 'rgba(20, 48, 72, 0.98)',
+      defaultHoverColor: '#ffffff',
+      defaultHoverBorderColor: 'rgba(34, 211, 238, 0.58)',
+      colorPrimary: '#3b82f6',
+      colorPrimaryHover: '#60a5fa',
+      colorPrimaryActive: '#2563eb',
+    },
+  },
+};
+
 const THEME = {
-  main: '#2f84ff',
-  sub: '#66c8ff',
-  accent: '#9ad9ff',
+  main: '#3b82f6',
+  sub: '#22d3ee',
+  accent: '#7dd3fc',
   orange: '#ff9a3d',
   yellow: '#ffd166',
-  border: 'rgba(102, 200, 255, 0.38)',
-  glow: 'rgba(102, 200, 255, 0.20)',
+  border: 'rgba(125, 198, 214, 0.34)',
+  glow: 'rgba(59, 130, 246, 0.18)',
 } as const;
 
 const PANZHIHUA_DISTRICTS = ['东区', '西区', '仁和区', '米易县', '盐边县'] as const;
@@ -1060,13 +1108,13 @@ const BIOperationScreen: React.FC = () => {
       xAxis: {
         type: 'category',
         data: labels,
-        axisLabel: { color: '#75a8e6', fontSize: 10 },
-        axisLine: { lineStyle: { color: 'rgba(99,157,229,.45)' } },
+        axisLabel: { color: '#8eb0cc', fontSize: 10 },
+        axisLine: { lineStyle: { color: 'rgba(120,165,198,.42)' } },
       },
       yAxis: {
         type: 'value',
-        axisLabel: { color: '#75a8e6', fontSize: 10 },
-        splitLine: { lineStyle: { color: 'rgba(99,157,229,.15)' } },
+        axisLabel: { color: '#8eb0cc', fontSize: 10 },
+        splitLine: { lineStyle: { color: 'rgba(120,165,198,.12)' } },
       },
       series: [
         {
@@ -1075,12 +1123,12 @@ const BIOperationScreen: React.FC = () => {
           symbol: 'circle',
           symbolSize: 6,
           data,
-          lineStyle: { color: '#34d1ff', width: 2 },
-          itemStyle: { color: '#8ff5ff' },
+          lineStyle: { color: THEME.sub, width: 2 },
+          itemStyle: { color: THEME.accent },
           areaStyle: {
             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(42,206,255,.38)' },
-              { offset: 1, color: 'rgba(42,206,255,0)' },
+              { offset: 0, color: 'rgba(34,211,238,.32)' },
+              { offset: 1, color: 'rgba(34,211,238,0)' },
             ]),
           },
         },
@@ -1108,7 +1156,7 @@ const BIOperationScreen: React.FC = () => {
           itemStyle: { borderColor: 'rgba(18, 40, 80, 0.85)', borderWidth: 1 },
         },
       ],
-      color: [THEME.sub, THEME.main, THEME.accent, 'rgba(102,200,255,0.55)', 'rgba(47,132,255,0.35)', THEME.yellow],
+      color: [THEME.sub, THEME.main, '#60a5fa', THEME.accent, 'rgba(125,198,214,0.5)', THEME.yellow],
     };
   }, [topDishes]);
 
@@ -1129,7 +1177,7 @@ const BIOperationScreen: React.FC = () => {
         itemWidth: 14,
         itemHeight: 8,
         itemGap: 12,
-        textStyle: { color: '#8fb9ef', fontSize: 10 },
+        textStyle: { color: 'rgba(200, 220, 240, 0.88)', fontSize: 10 },
       },
       graphic: [
         {
@@ -1167,18 +1215,18 @@ const BIOperationScreen: React.FC = () => {
             length: 10,
             length2: 12,
             smooth: 0.2,
-            lineStyle: { color: 'rgba(143,185,239,.7)' },
+            lineStyle: { color: 'rgba(125,198,214,.65)' },
           },
           itemStyle: {
             borderColor: 'rgba(8, 30, 70, 0.9)',
             borderWidth: 1,
             shadowBlur: 10,
-            shadowColor: 'rgba(70, 190, 255, 0.25)',
+            shadowColor: 'rgba(59, 130, 246, 0.22)',
           },
           data: sorted,
         },
       ],
-      color: ['#62d7ff', '#3f97ff', '#5f7cff', '#37c8a9', '#9ad9ff'],
+      color: [THEME.sub, THEME.main, '#60a5fa', '#38bdf8', THEME.accent],
     };
   }, [districtRevenue]);
 
@@ -1194,13 +1242,13 @@ const BIOperationScreen: React.FC = () => {
       xAxis: {
         type: 'category',
         data: labels,
-        axisLabel: { color: '#75a8e6', fontSize: 10 },
-        axisLine: { lineStyle: { color: 'rgba(99,157,229,.45)' } },
+        axisLabel: { color: '#8eb0cc', fontSize: 10 },
+        axisLine: { lineStyle: { color: 'rgba(120,165,198,.42)' } },
       },
       yAxis: {
         type: 'value',
-        axisLabel: { color: '#75a8e6', fontSize: 10 },
-        splitLine: { lineStyle: { color: 'rgba(99,157,229,.15)' } },
+        axisLabel: { color: '#8eb0cc', fontSize: 10 },
+        splitLine: { lineStyle: { color: 'rgba(120,165,198,.12)' } },
       },
       series: [
         {
@@ -1210,8 +1258,8 @@ const BIOperationScreen: React.FC = () => {
           itemStyle: {
             borderRadius: [4, 4, 0, 0],
             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: '#2be5ff' },
-              { offset: 1, color: '#1979ff' },
+              { offset: 0, color: THEME.sub },
+              { offset: 1, color: THEME.main },
             ]),
           },
         },
@@ -1264,14 +1312,14 @@ const BIOperationScreen: React.FC = () => {
         // Geo 不参与绘制区县名（由下方 map serie 出面心 label），避免以后误开两套字重叠
         label: { show: false },
         itemStyle: {
-          areaColor: 'rgba(30, 108, 205, 0.78)',
-          borderColor: 'rgba(160, 232, 255, 0.56)',
+          areaColor: 'rgba(30, 72, 118, 0.78)',
+          borderColor: 'rgba(125, 198, 214, 0.48)',
           borderWidth: 1.3,
         },
         emphasis: {
           itemStyle: {
-            areaColor: 'rgba(92, 206, 255, 0.62)',
-            borderColor: 'rgba(220, 250, 255, 0.95)',
+            areaColor: 'rgba(59, 130, 246, 0.42)',
+            borderColor: 'rgba(34, 211, 238, 0.92)',
             borderWidth: 1.8,
           },
         },
@@ -1286,20 +1334,19 @@ const BIOperationScreen: React.FC = () => {
           zlevel: 8,
           itemStyle: {
             areaColor: 'transparent',
-            // 清晰亮蓝发光边界：加粗+强发光
-            borderColor: 'rgba(98, 226, 255, 1)',
-            borderWidth: 2.8,
-            shadowBlur: 30,
-            shadowColor: 'rgba(98, 226, 255, 0.95)',
+            borderColor: 'rgba(34, 211, 238, 0.88)',
+            borderWidth: 2.4,
+            shadowBlur: 26,
+            shadowColor: 'rgba(34, 211, 238, 0.55)',
             shadowOffsetY: 0,
           },
           emphasis: {
             itemStyle: {
-              areaColor: 'rgba(56, 148, 225, 0.24)',
-              borderColor: 'rgba(170, 245, 255, 1)',
-              borderWidth: 3.4,
-              shadowBlur: 36,
-              shadowColor: 'rgba(170, 245, 255, 1)',
+              areaColor: 'rgba(59, 130, 246, 0.2)',
+              borderColor: 'rgba(125, 211, 230, 0.95)',
+              borderWidth: 3,
+              shadowBlur: 32,
+              shadowColor: 'rgba(125, 211, 230, 0.65)',
             },
           },
           label: { show: false },
@@ -1314,18 +1361,18 @@ const BIOperationScreen: React.FC = () => {
           label: { show: false },
           itemStyle: {
             // 常态统一底色，避免多区同时“亮起”
-            areaColor: 'rgba(36, 122, 210, 0.88)',
-            borderColor: 'rgba(172, 236, 255, 0.8)',
+            areaColor: 'rgba(28, 78, 128, 0.88)',
+            borderColor: 'rgba(125, 198, 214, 0.65)',
             borderWidth: 1.5,
             shadowBlur: 12,
-            shadowColor: 'rgba(86, 220, 255, 0.28)',
+            shadowColor: 'rgba(59, 130, 246, 0.22)',
           },
           emphasis: {
             label: { show: false },
             itemStyle: {
-              areaColor: 'rgba(76, 206, 255, 0.78)',
-              shadowBlur: 26,
-              shadowColor: 'rgba(120, 238, 255, 0.9)',
+              areaColor: 'rgba(59, 130, 246, 0.55)',
+              shadowBlur: 22,
+              shadowColor: 'rgba(34, 211, 238, 0.45)',
             },
           },
         },
@@ -1368,18 +1415,18 @@ const BIOperationScreen: React.FC = () => {
                   borderRadius: 3,
                 },
                 itemStyle: {
-                  color: 'rgba(86, 233, 255, 1)',
-                  borderColor: 'rgba(240, 252, 255, 1)',
+                  color: THEME.sub,
+                  borderColor: 'rgba(240, 249, 255, 1)',
                   borderWidth: 2,
-                  shadowBlur: 22,
-                  shadowColor: 'rgba(86, 233, 255, 1)',
+                  shadowBlur: 20,
+                  shadowColor: 'rgba(34, 211, 238, 0.55)',
                 },
                 emphasis: {
                   scale: true,
                   itemStyle: {
-                    color: 'rgba(120, 245, 255, 1)',
-                    shadowBlur: 30,
-                    shadowColor: 'rgba(120,245,255,1)',
+                    color: THEME.accent,
+                    shadowBlur: 28,
+                    shadowColor: 'rgba(125, 211, 230, 0.65)',
                   },
                 },
                 tooltip: {
@@ -1685,18 +1732,18 @@ const BIOperationScreen: React.FC = () => {
       legend: {
         top: 0,
         right: 0,
-        textStyle: { color: '#8fb9ef', fontSize: 10 },
+        textStyle: { color: 'rgba(200, 220, 240, 0.88)', fontSize: 10 },
       },
       xAxis: {
         type: 'category',
         data: labels,
-        axisLabel: { color: '#75a8e6', fontSize: 10 },
-        axisLine: { lineStyle: { color: 'rgba(99,157,229,.45)' } },
+        axisLabel: { color: '#8eb0cc', fontSize: 10 },
+        axisLine: { lineStyle: { color: 'rgba(120,165,198,.42)' } },
       },
       yAxis: {
         type: 'value',
-        axisLabel: { color: '#75a8e6', fontSize: 10 },
-        splitLine: { lineStyle: { color: 'rgba(99,157,229,.15)' } },
+        axisLabel: { color: '#8eb0cc', fontSize: 10 },
+        splitLine: { lineStyle: { color: 'rgba(120,165,198,.12)' } },
       },
       tooltip: {
         trigger: 'axis',
@@ -1709,7 +1756,7 @@ const BIOperationScreen: React.FC = () => {
           data: upper,
           smooth: true,
           symbol: 'none',
-          lineStyle: { color: 'rgba(102,200,255,.45)', type: 'dashed' },
+          lineStyle: { color: 'rgba(125,198,214,.38)', type: 'dashed' },
         },
         {
           name: '下界',
@@ -1717,9 +1764,9 @@ const BIOperationScreen: React.FC = () => {
           data: lower,
           smooth: true,
           symbol: 'none',
-          lineStyle: { color: 'rgba(102,200,255,.45)', type: 'dashed' },
+          lineStyle: { color: 'rgba(125,198,214,.38)', type: 'dashed' },
           areaStyle: {
-            color: 'rgba(52, 209, 255, 0.15)',
+            color: 'rgba(34, 211, 238, 0.12)',
           },
         },
         {
@@ -1729,8 +1776,8 @@ const BIOperationScreen: React.FC = () => {
           smooth: true,
           symbol: 'circle',
           symbolSize: 5,
-          lineStyle: { color: '#34d1ff', width: 2 },
-          itemStyle: { color: '#8ff5ff' },
+          lineStyle: { color: THEME.sub, width: 2 },
+          itemStyle: { color: THEME.accent },
         },
       ],
       backgroundColor: 'transparent',
@@ -1934,7 +1981,7 @@ const BIOperationScreen: React.FC = () => {
           data,
         },
       ],
-      color: ['#62d7ff', '#3f97ff', '#5f7cff', '#37c8a9', '#ffd166'],
+      color: [THEME.sub, THEME.main, '#60a5fa', '#38bdf8', THEME.yellow],
     };
   }, [hqRegionRankRows]);
 
@@ -1993,54 +2040,83 @@ const BIOperationScreen: React.FC = () => {
       <div className="biOpHeader">
         <div className="biOpHeaderLeft">当前时刻：{lastUpdatedAt || '-'}</div>
         <div className="biOpHeaderControls">
-          <Space wrap={false}>
-            <Segmented
-              value={view}
-              options={[
-                { value: 'hq', label: '总部视角' },
-                { value: 'store', label: '门店视角' },
-                { value: 'region', label: '区域视角' },
-              ]}
-              onChange={(v) => setView(v as ViewKey)}
-            />
-            {view === 'store' ? (
-              <Select style={{ width: 180 }} value={selectedStoreId} options={storeOptions} placeholder="选择门店" onChange={setSelectedStoreId} />
-            ) : null}
-            {view === 'region' ? (
-              <Select style={{ width: 160 }} value={selectedRegion} options={regionOptions} placeholder="选择区县" onChange={setSelectedRegion} />
-            ) : null}
-            <Select
-              style={{ width: 320 }}
-              placeholder="选择「图表管理与回看」中的图表（可选）"
-              value={selectedChartId}
-              options={myChartOptions}
-              onChange={setSelectedChartId}
-            />
-            <DatePicker.RangePicker
-              value={[dayjs(dateRange[0]), dayjs(dateRange[1])]}
-              onChange={(dates) => {
-                if (!dates || !dates[0] || !dates[1]) return;
-                setDateRange([dates[0].format('YYYY-MM-DD'), dates[1].format('YYYY-MM-DD')]);
-              }}
-            />
-            <Button
-              type="default"
-              onClick={() => history.push('/risk_portrait/overview')}
-            >
-              画像总览
-            </Button>
-            <Button
-              type="primary"
-              disabled={view !== 'store' || !selectedStoreId}
-              onClick={() =>
-                history.push(
-                  buildStorePortraitPath(String(selectedStoreId), storeNameById[String(selectedStoreId)] || ''),
-                )
-              }
-            >
-              当前门店画像
-            </Button>
-          </Space>
+          <ConfigProvider theme={BI_OP_HEADER_THEME}>
+            <Space wrap={false} size={[6, 4]} className="biOpHeaderToolbar">
+              <Segmented
+                size="small"
+                value={view}
+                options={[
+                  { value: 'hq', label: '总部视角' },
+                  { value: 'store', label: '门店视角' },
+                  { value: 'region', label: '区域视角' },
+                ]}
+                onChange={(v) => setView(v as ViewKey)}
+              />
+              {view === 'store' ? (
+                <Select
+                  size="small"
+                  style={{ width: 'min(156px, 24vw)' }}
+                  value={selectedStoreId}
+                  options={storeOptions}
+                  placeholder="选择门店"
+                  onChange={setSelectedStoreId}
+                  popupClassName="biOpSelectDropdown"
+                  getPopupContainer={() => document.body}
+                />
+              ) : null}
+              {view === 'region' ? (
+                <Select
+                  size="small"
+                  style={{ width: 'min(132px, 20vw)' }}
+                  value={selectedRegion}
+                  options={regionOptions}
+                  placeholder="选择区县"
+                  onChange={setSelectedRegion}
+                  popupClassName="biOpSelectDropdown"
+                  getPopupContainer={() => document.body}
+                />
+              ) : null}
+              <Select
+                size="small"
+                style={{ width: 'min(280px, 38vw)' }}
+                placeholder="选择「图表管理与回看」中的图表（可选）"
+                value={selectedChartId}
+                options={myChartOptions}
+                onChange={setSelectedChartId}
+                popupClassName="biOpSelectDropdown"
+                getPopupContainer={() => document.body}
+              />
+              <DatePicker.RangePicker
+                size="small"
+                value={[dayjs(dateRange[0]), dayjs(dateRange[1])]}
+                onChange={(dates) => {
+                  if (!dates || !dates[0] || !dates[1]) return;
+                  setDateRange([dates[0].format('YYYY-MM-DD'), dates[1].format('YYYY-MM-DD')]);
+                }}
+                popupClassName="biOpPickerDropdown"
+                getPopupContainer={() => document.body}
+              />
+              <Button
+                size="small"
+                type="default"
+                onClick={() => history.push('/risk_portrait/overview')}
+              >
+                画像总览
+              </Button>
+              <Button
+                size="small"
+                type="primary"
+                disabled={view !== 'store' || !selectedStoreId}
+                onClick={() =>
+                  history.push(
+                    buildStorePortraitPath(String(selectedStoreId), storeNameById[String(selectedStoreId)] || ''),
+                  )
+                }
+              >
+                当前门店画像
+              </Button>
+            </Space>
+          </ConfigProvider>
         </div>
         <div className="biOpHeaderRight">运行状态：量贩零食经营监控中</div>
       </div>
@@ -2100,7 +2176,7 @@ const BIOperationScreen: React.FC = () => {
                                   <Button
                                     type="link"
                                     size="small"
-                                    style={{ padding: '0 4px', color: '#91caff' }}
+                                    style={{ padding: '0 4px', color: THEME.accent }}
                                     onClick={() =>
                                       history.push(buildStorePortraitPath(String(s.storeId), String(s?.storeName || '')))
                                     }
@@ -2135,7 +2211,7 @@ const BIOperationScreen: React.FC = () => {
                                     <Button
                                       type="link"
                                       size="small"
-                                      style={{ padding: '0 4px', color: '#91caff' }}
+                                      style={{ padding: '0 4px', color: THEME.accent }}
                                       onClick={() =>
                                         history.push(buildStorePortraitPath(String(s.storeId), String(s?.storeName || '')))
                                       }
@@ -2219,7 +2295,7 @@ const BIOperationScreen: React.FC = () => {
               </div>
               <div className="biOpPanel biOpPanelBottom">
                 <div className="biOpPanelTitle">门店销售趋势</div>
-                <ReactECharts option={leftTrendOption} style={{ height: 170 }} />
+                <ReactECharts option={leftTrendOption} style={{ height: 136 }} />
               </div>
             </div>
 
@@ -2227,6 +2303,8 @@ const BIOperationScreen: React.FC = () => {
               <div className="biOpPanel biOpMapPanel">
                 <div className="biOpPanelTitle">地理分布总览</div>
                 <div className="biOpMapMain" ref={mapMainRef}>
+                  <div className="biOpMapAmbient" aria-hidden />
+                  <div className="biOpMapSweep" aria-hidden />
                   {mapReady ? (
                     <ReactECharts
                       // 切视角时重建地图实例，清掉上个视角残留的缩放/平移状态
@@ -2251,7 +2329,7 @@ const BIOperationScreen: React.FC = () => {
                   </div>
                 </div>
                 <div className="biOpEventTicker">
-                  {(alertRows.length ? alertRows : [{ severity: 'P2', metric: '系统状态', msg: '暂无攀枝花库存预警事件' }]).map((it: any, idx: number) => (
+                  {(alertRows.length ? alertRows : [{ severity: 'P2', metric: '系统状态', msg: '暂无某市库存预警事件' }]).map((it: any, idx: number) => (
                     <div className="event" key={`${it.metric}-${idx}`}>
                       <span className="tag">{it.severity}</span>
                       <span className="txt">{it.metric}：{it.msg || '-'}</span>
@@ -2281,7 +2359,7 @@ const BIOperationScreen: React.FC = () => {
                           <Button
                             type="link"
                             size="small"
-                            style={{ padding: 0, height: 'auto', color: '#91caff' }}
+                            style={{ padding: 0, height: 'auto', color: THEME.accent }}
                             onClick={() =>
                               history.push(
                                 buildStorePortraitPath(d.storeId, storeNameById[d.storeId] || ''),
@@ -2328,15 +2406,15 @@ const BIOperationScreen: React.FC = () => {
                   </div>
                 ) : null}
                 {view === 'region' ? (
-                  <ReactECharts option={regionRoseOption} style={{ height: 240 }} />
+                  <ReactECharts option={regionRoseOption} style={{ height: 200 }} />
                 ) : null}
               </div>
               <div className="biOpPanel biOpPanelBottom">
                 <div className="biOpPanelTitle">{view === 'hq' ? '区域贡献排行' : '销售预测（未来7天）'}</div>
                 {view === 'hq' ? (
-                  <ReactECharts option={hqRegionPieOption} style={{ height: 220 }} />
+                  <ReactECharts option={hqRegionPieOption} style={{ height: 188 }} />
                 ) : (
-                  <ReactECharts option={forecastOption} style={{ height: 180 }} />
+                  <ReactECharts option={forecastOption} style={{ height: 158 }} />
                 )}
               </div>
             </div>
