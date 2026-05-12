@@ -1,10 +1,11 @@
 import { Question } from '@/components/RightContent';
 import { getLoginUserUsingGET } from '@/services/yubi/userController';
-import { ArrowLeftOutlined, LinkOutlined } from '@ant-design/icons';
+import defaultSettings from '../config/defaultSettings';
+import { LinkOutlined, LogoutOutlined } from '@ant-design/icons';
 import { SettingDrawer } from '@ant-design/pro-components';
 import type { RunTimeLayoutConfig } from '@umijs/max';
 import { history, Link } from '@umijs/max';
-import { FloatButton } from 'antd';
+import { Button } from 'antd';
 import { AvatarDropdown, AvatarName } from './components/RightContent/AvatarDropdown';
 import { errorConfig } from './requestConfig';
 
@@ -41,7 +42,24 @@ export async function getInitialState(): Promise<{
 // ProLayout 支持的api https://procomponents.ant.design/components/layout
 export const layout: RunTimeLayoutConfig = ({ initialState, setInitialState }) => {
   return {
-    actionsRender: () => [<Question key="doc" />],
+    actionsRender: () => [
+      <Question key="doc" />,
+      <Button
+        key="logout-to-login"
+        type="link"
+        size="small"
+        icon={<LogoutOutlined />}
+        onClick={() => {
+          setInitialState((pre) => ({
+            ...pre,
+            currentUser: undefined,
+          }));
+          history.push(loginPath);
+        }}
+      >
+        返回登录
+      </Button>,
+    ],
     avatarProps: {
       src: initialState?.currentUser?.userAvatar,
       title: <AvatarName />,
@@ -60,26 +78,8 @@ export const layout: RunTimeLayoutConfig = ({ initialState, setInitialState }) =
         history.push(loginPath);
       }
     },
-    layoutBgImgList: [
-      {
-        src: 'https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/D2LWSqNny4sAAAAAAAAAAAAAFl94AQBr',
-        left: 85,
-        bottom: 100,
-        height: '303px',
-      },
-      {
-        src: 'https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/C2TWRpJpiC0AAAAAAAAAAAAAFl94AQBr',
-        bottom: -68,
-        right: -45,
-        height: '303px',
-      },
-      {
-        src: 'https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/F6vSTbj8KpYAAAAAAAAAAAAAFl94AQBr',
-        bottom: 0,
-        left: 0,
-        width: '331px',
-      },
-    ],
+    /** 演示/投影下去除装饰底图，内容区更干净 */
+    layoutBgImgList: [],
     links: isDev
       ? [
           <Link key="openapi" to="/umi/plugin/openapi" target="_blank">
@@ -93,37 +93,29 @@ export const layout: RunTimeLayoutConfig = ({ initialState, setInitialState }) =
     // unAccessible: <div>unAccessible</div>,
     // 增加一个 loading 的状态
     childrenRender: (children) => {
-      // if (initialState?.loading) return <PageLoading />;
       return (
         <>
           {children}
-          <FloatButton
-            icon={<ArrowLeftOutlined />}
-            tooltip="返回登录界面"
-            style={{ right: 24, bottom: 96 }}
-            onClick={() => {
-              setInitialState((preInitialState) => ({
-                ...preInitialState,
-                currentUser: undefined,
-              }));
-              history.push(loginPath);
-            }}
-          />
-          <SettingDrawer
-            disableUrlParams
-            enableDarkTheme
-            settings={initialState?.settings}
-            onSettingChange={(settings) => {
-              setInitialState((preInitialState) => ({
-                ...preInitialState,
-                settings,
-              }));
-            }}
-          />
+          {isDev ? (
+            <SettingDrawer
+              disableUrlParams
+              enableDarkTheme
+              settings={initialState?.settings}
+              onSettingChange={(settings) => {
+                setInitialState((preInitialState) => ({
+                  ...preInitialState,
+                  settings,
+                }));
+              }}
+            />
+          ) : null}
         </>
       );
     },
     ...initialState?.settings,
+    /** SettingDrawer / 历史缓存里的 settings 会覆盖 layout，侧栏 Logo 需固定为项目资源 */
+    logo: defaultSettings.logo,
+    title: defaultSettings.title,
   };
 };
 

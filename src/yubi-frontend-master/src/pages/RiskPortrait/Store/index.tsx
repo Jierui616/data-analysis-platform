@@ -1,6 +1,7 @@
+import RiskPortraitNavBar from '@/components/RiskPortraitNavBar';
 import { history, useSearchParams } from '@umijs/max';
 import { fetchStorePortrait, type StorePortraitData } from '@/services/yubi/riskPortraitController';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import { ShopOutlined } from '@ant-design/icons';
 import { Button, Card, DatePicker, Descriptions, Empty, Progress, Space, Spin, Tag, Typography, message } from 'antd';
 import dayjs from 'dayjs';
 import ReactECharts from 'echarts-for-react';
@@ -82,19 +83,18 @@ const RiskPortraitStore: React.FC = () => {
 
   return (
     <div style={{ padding: 24, maxWidth: 960 }}>
-      <Space style={{ marginBottom: 16 }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => history.push('/risk_portrait/overview')}>
-          返回总览
-        </Button>
-        <Button type="link" onClick={() => history.push('/bi_bigscreen')}>
-          经营指挥大屏
-        </Button>
-      </Space>
+      <RiskPortraitNavBar
+        extra={
+          <Button type="link" size="small" icon={<ShopOutlined />} onClick={() => history.push('/biz/bigscreen')}>
+            经营指挥大屏
+          </Button>
+        }
+      />
 
       {!qStoreId ? (
         <Card>
           <Empty description="未指定门店：请从经营指挥大屏「门店视角」进入，或在 URL 增加 ?storeId=xxx">
-            <Button type="primary" onClick={() => history.push('/bi_bigscreen')}>
+            <Button type="primary" onClick={() => history.push('/biz/bigscreen')}>
               去大屏选择门店
             </Button>
           </Empty>

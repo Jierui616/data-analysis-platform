@@ -1,3 +1,4 @@
+import RiskPortraitNavBar from '@/components/RiskPortraitNavBar';
 import { history } from '@umijs/max';
 import { fetchPortraitOverview } from '@/services/yubi/riskPortraitController';
 import { ArrowRightOutlined, IdcardOutlined, SafetyCertificateOutlined, TeamOutlined } from '@ant-design/icons';
@@ -40,7 +41,8 @@ const RiskPortraitOverview: React.FC = () => {
 
   return (
     <div style={{ padding: 24, maxWidth: 1200 }}>
-      <Title level={4}>风险与信用画像</Title>
+      <RiskPortraitNavBar showBack={false} />
+      <Title level={4}>画像总览</Title>
       <Paragraph type="secondary">
         与经营指挥大屏共用门店与预警口径；下方指标为当前登录用户可见范围内的汇总，便于快速把握风险面。
       </Paragraph>

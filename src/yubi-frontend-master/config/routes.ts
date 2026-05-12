@@ -1,14 +1,43 @@
 export default [
   { path: '/user', layout: false, routes: [{ path: '/user/login', component: './User/Login' }] },
-  { path: '/', redirect: '/add_chart' },
-  { path: '/add_chart', name: '智能分析（实时）', icon: 'barChart', component: './AddChart' },
-  { path: '/add_chart_async', name: '智能分析（异步）', icon: 'barChart', component: './AddChartAsync' },
-  { path: '/deep_chat', name: '深度对话', icon: 'message', component: './DeepChat' },
-  { path: '/chart_result/:id', component: './ChartResult' },
-  { path: '/my_chart', name: '图表管理与结果回看', icon: 'pieChart', component: './MyChart' },
-  { path: '/lineage_center', name: '血缘追踪中心', icon: 'apartment', component: './LineageCenter' },
-  { path: '/data_import', name: '成本与排班导入', icon: 'upload', component: './DataImportCenter' },
-  { path: '/bi_bigscreen', name: '经营指挥大屏', icon: 'dashboard', component: './BIOperationScreen' },
+  { path: '/', redirect: '/ai/realtime' },
+
+  /** 兼容旧链接（菜单已分组到新路径） */
+  { path: '/add_chart', redirect: '/ai/realtime', hideInMenu: true },
+  { path: '/add_chart_async', redirect: '/ai/async', hideInMenu: true },
+  { path: '/deep_chat', redirect: '/ai/chat', hideInMenu: true },
+  { path: '/my_chart', redirect: '/biz/charts', hideInMenu: true },
+  { path: '/lineage_center', redirect: '/biz/lineage', hideInMenu: true },
+  { path: '/data_import', redirect: '/biz/import', hideInMenu: true },
+  { path: '/bi_bigscreen', redirect: '/biz/bigscreen', hideInMenu: true },
+
+  {
+    path: '/ai',
+    name: '智能分析',
+    icon: 'barChart',
+    routes: [
+      { path: '/ai', redirect: '/ai/realtime' },
+      { path: '/ai/realtime', name: '实时生成', component: './AddChart' },
+      { path: '/ai/async', name: '异步生成', component: './AddChartAsync' },
+      { path: '/ai/chat', name: '深度对话', icon: 'message', component: './DeepChat' },
+    ],
+  },
+
+  { path: '/chart_result/:id', hideInMenu: true, component: './ChartResult' },
+
+  {
+    path: '/biz',
+    name: '数据与经营',
+    icon: 'appstore',
+    routes: [
+      { path: '/biz', redirect: '/biz/charts' },
+      { path: '/biz/charts', name: '图表管理与回看', icon: 'pieChart', component: './MyChart' },
+      { path: '/biz/lineage', name: '血缘追踪中心', icon: 'apartment', component: './LineageCenter' },
+      { path: '/biz/import', name: '成本与排班导入', icon: 'upload', component: './DataImportCenter' },
+      { path: '/biz/bigscreen', name: '经营指挥大屏', icon: 'dashboard', component: './BIOperationScreen' },
+    ],
+  },
+
   {
     path: '/risk_portrait',
     name: '风险与信用画像',
@@ -23,13 +52,15 @@ export default [
       { path: '/risk_portrait/audit', name: '命中与留痕', component: './RiskPortrait/Audit' },
     ],
   },
+
   {
     path: '/admin',
+    name: '系统管理',
     icon: 'crown',
     access: 'canAdmin',
     routes: [
-      { path: '/admin', name: '管理页面', redirect: '/admin/sub-page' },
-      { path: '/admin/sub-page', name: '管理页面2', component: './Admin' },
+      { path: '/admin', redirect: '/admin/sub-page' },
+      { path: '/admin/sub-page', name: '管理控制台', component: './Admin' },
     ],
   },
   { path: '*', layout: false, component: './404' },

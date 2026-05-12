@@ -1,6 +1,6 @@
 import { genChartByAiUsingPOST } from '@/services/yubi/chartController';
 import { UploadOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Form, Input, message, Row, Select, Space, Spin, Tag, Typography, Upload } from 'antd';
+import { Button, Card, Col, Empty, Form, Input, message, Row, Select, Space, Spin, Steps, Tag, Typography, Upload, Alert } from 'antd';
 import { useForm } from 'antd/es/form/Form';
 import TextArea from 'antd/es/input/TextArea';
 import React, { useMemo, useRef, useState } from 'react';
@@ -240,6 +240,11 @@ const AddChart: React.FC = () => {
 
   const compact = buildCompactConclusion(chart?.genResult);
   const hasGenerated = Boolean(chart?.genResult || option);
+  const flowStep = useMemo(() => {
+    if (submitting) return 1;
+    if (hasGenerated) return 2;
+    return 0;
+  }, [submitting, hasGenerated]);
   const displayOption = useMemo(() => {
     if (!option) return undefined;
     const next = JSON.parse(JSON.stringify(option || {}));
@@ -385,6 +390,16 @@ const AddChart: React.FC = () => {
 
   return (
     <div className="add-chart">
+      <Steps
+        size="small"
+        current={flowStep}
+        items={[
+          { title: '准备数据与需求', description: '上传 CSV、填写分析目标' },
+          { title: '提交生成', description: '模型处理约数十秒' },
+          { title: '查看结果', description: '图表与结论' },
+        ]}
+        style={{ marginBottom: 16 }}
+      />
       <Row gutter={16} align="stretch">
         <Col xs={24} xl={9} style={{ display: 'flex' }}>
           <Card title="智能分析" bodyStyle={{ padding: 18 }} style={{ width: '100%' }}>
@@ -468,13 +483,32 @@ const AddChart: React.FC = () => {
         </Col>
         <Col xs={24} xl={15} style={{ display: 'flex' }}>
           {!hasGenerated ? (
-            <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: 12, width: '100%', flex: 1 }}>
-              <Card title="可视化图表" style={{ height: '100%' }} bodyStyle={{ minHeight: 160, display: 'flex', alignItems: 'center' }}>
-                请先在左侧进行提交
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', flex: 1 }}>
+              <Card
+                title="可视化图表"
+                style={{ flex: 1, minHeight: 200 }}
+                bodyStyle={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 160 }}
+              >
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={
+                    <Space direction="vertical" size={4}>
+                      <Typography.Text>填写左侧表单并提交后展示图表</Typography.Text>
+                      {!submitting ? (
+                        <Typography.Text type="secondary">首次生成通常需 30～90 秒</Typography.Text>
+                      ) : null}
+                    </Space>
+                  }
+                />
               </Card>
-              <Card title="分析结论" style={{ height: '100%' }} bodyStyle={{ minHeight: 160, display: 'flex', alignItems: 'center' }}>
-                请先在左侧进行提交
+              <Card
+                title="分析结论"
+                style={{ flex: 1, minHeight: 200 }}
+                bodyStyle={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 160 }}
+              >
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="结论将在生成完成后展示" />
               </Card>
+              {submitting ? <Alert type="info" showIcon message="正在调用模型分析，请勿关闭页面" /> : null}
             </div>
           ) : (
             <Card title="可视化图表" style={{ width: '100%' }} bodyStyle={{ minHeight: 400 }}>

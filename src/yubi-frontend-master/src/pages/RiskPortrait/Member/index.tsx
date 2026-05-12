@@ -1,3 +1,4 @@
+import RiskPortraitNavBar from '@/components/RiskPortraitNavBar';
 import {
   fetchMemberActivity,
   fetchMemberWatchlist,
@@ -5,8 +6,7 @@ import {
   type MemberWatchlistData,
   type MemberWatchlistRow,
 } from '@/services/yubi/riskPortraitController';
-import { history } from '@umijs/max';
-import { ArrowLeftOutlined, SearchOutlined } from '@ant-design/icons';
+import { SearchOutlined } from '@ant-design/icons';
 import {
   Alert,
   Button,
@@ -162,9 +162,7 @@ const RiskPortraitMember: React.FC = () => {
 
   return (
     <div className="rp-member" style={{ padding: 24 }}>
-      <Button icon={<ArrowLeftOutlined />} onClick={() => history.push('/risk_portrait/overview')} style={{ marginBottom: 16 }}>
-        返回总览
-      </Button>
+      <RiskPortraitNavBar />
       <Card bordered={false} style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
         <div className="rp-member-hero">
           <Title level={4} style={{ marginBottom: 8 }}>

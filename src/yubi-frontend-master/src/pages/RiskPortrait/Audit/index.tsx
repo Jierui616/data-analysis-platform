@@ -1,7 +1,6 @@
-import { history } from '@umijs/max';
+import RiskPortraitNavBar from '@/components/RiskPortraitNavBar';
 import { pageRiskHitLog, type HitLogRow } from '@/services/yubi/riskPortraitController';
-import { ArrowLeftOutlined } from '@ant-design/icons';
-import { Button, Card, Table, Typography, message } from 'antd';
+import { Card, Table, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useState } from 'react';
 
 const { Paragraph, Title } = Typography;
@@ -77,9 +76,7 @@ const RiskPortraitAudit: React.FC = () => {
 
   return (
     <div style={{ padding: 24, maxWidth: 1100 }}>
-      <Button icon={<ArrowLeftOutlined />} onClick={() => history.push('/risk_portrait/overview')} style={{ marginBottom: 16 }}>
-        返回总览
-      </Button>
+      <RiskPortraitNavBar />
       <Card>
         <Title level={5}>命中与留痕</Title>
         <Paragraph type="secondary">

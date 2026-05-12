@@ -1,5 +1,4 @@
 import Footer from '@/components/Footer';
-import { listChartByPageUsingPOST } from '@/services/yubi/chartController';
 import { getLoginUserUsingGET, userLoginUsingPOST } from '@/services/yubi/userController';
 import { Link } from '@@/exports';
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
@@ -7,7 +6,7 @@ import { LoginForm, ProFormText } from '@ant-design/pro-components';
 import { useEmotionCss } from '@ant-design/use-emotion-css';
 import { Helmet, history, useModel } from '@umijs/max';
 import { message, Tabs } from 'antd';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { flushSync } from 'react-dom';
 import Settings from '../../../../config/defaultSettings';
 
@@ -20,16 +19,9 @@ const Login: React.FC = () => {
       flexDirection: 'column',
       height: '100vh',
       overflow: 'auto',
-      backgroundImage:
-        "url('https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/V-_oS6r-i7wAAAAAAAAAAAAAFl94AQBr')",
-      backgroundSize: '100% 100%',
+      background:
+        'linear-gradient(165deg, #e8f1ff 0%, #f5f9ff 38%, #ffffff 72%), radial-gradient(1200px 600px at 80% -10%, rgba(47, 132, 255, 0.18), transparent)',
     };
-  });
-
-  useEffect(() => {
-    listChartByPageUsingPOST({}).then((res) => {
-      console.error('res', res);
-    });
   });
 
   /**
@@ -87,6 +79,7 @@ const Login: React.FC = () => {
           }}
           logo={<img alt="logo" src="/logo.svg" />}
           title="湖仓数智金融分析平台"
+          subTitle="智能分析 · 经营大屏 · 血缘追踪 · 风险画像"
           onFinish={async (values) => {
             await handleSubmit(values as API.UserLoginRequest);
           }}

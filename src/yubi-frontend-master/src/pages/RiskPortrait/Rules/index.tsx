@@ -1,7 +1,7 @@
-import { history } from '@umijs/max';
+import RiskPortraitNavBar from '@/components/RiskPortraitNavBar';
 import { runRiskDecision, type RiskDecisionResult } from '@/services/yubi/riskPortraitController';
 import { getRestaurantHqOverview } from '@/services/yubi/restaurantController';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import { history } from '@umijs/max';
 import {
   AutoComplete,
   Button,
@@ -107,9 +107,7 @@ const RiskPortraitRules: React.FC = () => {
 
   return (
     <div style={{ padding: 24, maxWidth: 880 }}>
-      <Button icon={<ArrowLeftOutlined />} onClick={() => history.push('/risk_portrait/overview')} style={{ marginBottom: 16 }}>
-        返回总览
-      </Button>
+      <RiskPortraitNavBar />
       <Card>
         <Title level={5}>策略与规则</Title>
         <Paragraph>

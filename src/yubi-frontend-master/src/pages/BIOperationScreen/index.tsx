@@ -577,7 +577,7 @@ const BIOperationScreen: React.FC = () => {
       setMyChartOptions(options);
       if (!selectedChartId && options.length > 0) setSelectedChartId(options[0].value);
     } catch (e: any) {
-      message.warning(`加载图表管理与结果回看数据失败：${e?.message || String(e)}`);
+      message.warning(`加载「图表管理与回看」数据失败：${e?.message || String(e)}`);
     }
   };
 
@@ -628,7 +628,6 @@ const BIOperationScreen: React.FC = () => {
             const dMin = dayjs(dr.minDate);
             if (start.isBefore(dMin, 'day')) start = dMin;
             const next: [string, string] = [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')];
-            message.info(`筛选日期与库内数据无交集，已自动对齐为 ${next[0]} ~ ${next[1]}（可在右上角日期框修改）`);
             setDateRange(next);
             return;
           }
@@ -2012,7 +2011,7 @@ const BIOperationScreen: React.FC = () => {
             ) : null}
             <Select
               style={{ width: 320 }}
-              placeholder="选择图表管理与结果回看中的图表（可选）"
+              placeholder="选择「图表管理与回看」中的图表（可选）"
               value={selectedChartId}
               options={myChartOptions}
               onChange={setSelectedChartId}

@@ -557,7 +557,7 @@ const DeepChatPage: React.FC = () => {
                                     <Button size="small" onClick={() => copyActionToReview(action)}>
                                       复制到回看
                                     </Button>
-                                    <Button size="small" type="link" onClick={() => navigate('/my_chart')}>
+                                    <Button size="small" type="link" onClick={() => navigate('/biz/charts')}>
                                       前往结果回看
                                     </Button>
                                   </Space>

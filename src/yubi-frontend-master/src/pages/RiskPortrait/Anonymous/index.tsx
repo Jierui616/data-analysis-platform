@@ -3,8 +3,8 @@ import {
   type AnonymousPortraitData,
   type AnonymousCluster,
 } from '@/services/yubi/riskPortraitController';
-import { history } from '@umijs/max';
-import { ArrowLeftOutlined, ReloadOutlined } from '@ant-design/icons';
+import RiskPortraitNavBar from '@/components/RiskPortraitNavBar';
+import { ReloadOutlined } from '@ant-design/icons';
 import { Alert, Button, Card, Col, Descriptions, Form, Input, Row, Space, Table, Tag, Tooltip, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -111,9 +111,7 @@ const RiskPortraitAnonymous: React.FC = () => {
 
   return (
     <div className="rp-member" style={{ padding: 24 }}>
-      <Button icon={<ArrowLeftOutlined />} onClick={() => history.push('/risk_portrait/overview')} style={{ marginBottom: 16 }}>
-        返回总览
-      </Button>
+      <RiskPortraitNavBar />
       <Card bordered={false} style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
         <div className="rp-member-hero">
           <Title level={4} style={{ marginBottom: 8 }}>

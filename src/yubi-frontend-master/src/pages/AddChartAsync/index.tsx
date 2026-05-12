@@ -55,7 +55,7 @@ const AddChartAsync: React.FC = () => {
       } else if (!res?.data) {
         message.error('分析失败：无返回数据');
       } else {
-        message.success('分析任务提交成功，稍后请在图表管理与结果回看页面查看');
+        message.success('分析任务提交成功，请稍后在「图表管理与回看」页面查看结果');
         form.resetFields();
       }
     } catch (e: any) {

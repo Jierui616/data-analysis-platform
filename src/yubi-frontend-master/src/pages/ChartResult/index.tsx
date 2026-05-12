@@ -463,7 +463,7 @@ const ChartResultPage: React.FC = () => {
       navigate(-1);
       return;
     }
-    navigate('/my_chart');
+    navigate('/biz/charts');
   };
 
   return (
