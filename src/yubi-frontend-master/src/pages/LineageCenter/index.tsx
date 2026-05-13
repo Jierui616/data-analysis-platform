@@ -497,20 +497,20 @@ const LineageCenter: React.FC = () => {
             />
           </Col>
           <Col xs={24} lg={6} xl={4}>
-            <Space direction="vertical" size={4} style={{ width: '100%' }}>
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', minHeight: 32 }}>
+              <Typography.Text type="secondary" style={{ fontSize: 12, flexShrink: 0 }}>
                 关系图展开深度
               </Typography.Text>
               <Select
-                style={{ width: '100%' }}
+                style={{ flex: 1, minWidth: 96 }}
                 value={graphDepth}
                 options={[1, 2, 3, 4, 5].map((d) => ({ label: `${d} 层`, value: d }))}
                 onChange={(v) => setGraphDepth(Number(v))}
               />
-            </Space>
+            </div>
           </Col>
-          <Col xs={24} lg={24} xl={5}>
-            <Space wrap>
+          <Col xs={24} lg={24} xl={5} style={{ display: 'flex', alignItems: 'center' }}>
+            <Space wrap={false}>
               <Button type="primary" onClick={() => loadLineage(chartIdInput)} loading={loading}>
                 查看可信度
               </Button>
@@ -518,11 +518,11 @@ const LineageCenter: React.FC = () => {
                 重新生成分析
               </Button>
             </Space>
-            <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}>
-              调整「展开深度」后请再次点击「查看可信度」以刷新关系图。
-            </Typography.Paragraph>
           </Col>
         </Row>
+        <Typography.Paragraph type="secondary" style={{ marginTop: 10, marginBottom: 0, fontSize: 12 }}>
+          调整「展开深度」后请再次点击「查看可信度」以刷新关系图。
+        </Typography.Paragraph>
       </Card>
 
       <Spin spinning={loading}>

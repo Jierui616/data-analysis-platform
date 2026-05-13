@@ -1,8 +1,8 @@
 /* 嵌入 Pro 侧栏内：留白收紧、中间地图略放大，贴近常见「顶栏+KPI+三列」大屏密度 */
 .biOpRoot {
   --gap: 6px;
-  --panel-border: rgba(125, 198, 214, 0.26);
-  --panel-bg: linear-gradient(180deg, rgba(16, 42, 62, 0.78), rgba(10, 28, 44, 0.82));
+  --panel-border: rgba(120, 200, 255, 0.18);
+  --panel-bg: linear-gradient(180deg, rgba(12, 38, 78, 0.75), rgba(6, 22, 53, 0.78));
   position: relative;
   height: 100%;
   padding: 6px 6px 8px;
@@ -11,10 +11,11 @@
   display: flex;
   flex-direction: column;
   gap: var(--gap);
+  /* 方案 A：靛蓝雾面 — 中心 #122a52、四角 #070f22，叠加极淡青雾 rgba(60,150,220,.06) */
   background:
-    radial-gradient(circle at 50% -8%, rgba(59, 130, 246, 0.16) 0%, rgba(59, 130, 246, 0) 36%),
-    radial-gradient(circle at 50% 52%, rgba(34, 211, 238, 0.05) 0%, rgba(34, 211, 238, 0) 44%),
-    linear-gradient(180deg, #0f2438 0%, #0b1a2a 52%, #081420 100%);
+    radial-gradient(ellipse 100% 92% at 50% 46%, #122a52 0%, rgba(7, 15, 34, 0.97) 72%, #070f22 100%),
+    linear-gradient(180deg, rgba(60, 150, 220, 0.06) 0%, rgba(60, 150, 220, 0.06) 100%),
+    #070f22;
 }
 
 /* 区域内滚动条：细轨道 + 半透明滑块，弱化系统默认粗白条；Firefox 同步 scrollbar-color */
@@ -26,7 +27,7 @@
 .biOpRoot .biOpEventTicker,
 .biOpRoot .biOpHeaderControls {
   scrollbar-width: thin;
-  scrollbar-color: rgba(125, 198, 214, 0.4) rgba(6, 18, 30, 0.62);
+  scrollbar-color: rgba(102, 200, 255, 0.42) rgba(3, 14, 38, 0.55);
 }
 
 .biOpRoot .biOpLeft::-webkit-scrollbar,
@@ -47,7 +48,7 @@
 .biOpRoot .biOpMiniList::-webkit-scrollbar-track,
 .biOpRoot .biOpEventTicker::-webkit-scrollbar-track,
 .biOpRoot .biOpHeaderControls::-webkit-scrollbar-track {
-  background: rgba(6, 18, 30, 0.62);
+  background: rgba(3, 14, 38, 0.55);
   border-radius: 3px;
 }
 
@@ -58,7 +59,7 @@
 .biOpRoot .biOpMiniList::-webkit-scrollbar-thumb,
 .biOpRoot .biOpEventTicker::-webkit-scrollbar-thumb,
 .biOpRoot .biOpHeaderControls::-webkit-scrollbar-thumb {
-  background: rgba(125, 198, 214, 0.38);
+  background: rgba(102, 200, 255, 0.38);
   border-radius: 3px;
 }
 
@@ -69,7 +70,7 @@
 .biOpRoot .biOpMiniList::-webkit-scrollbar-thumb:hover,
 .biOpRoot .biOpEventTicker::-webkit-scrollbar-thumb:hover,
 .biOpRoot .biOpHeaderControls::-webkit-scrollbar-thumb:hover {
-  background: rgba(125, 211, 230, 0.52);
+  background: rgba(130, 218, 255, 0.55);
 }
 
 .biOpHeader {
@@ -80,9 +81,9 @@
   padding: 4px 8px;
   min-height: 36px;
   flex: 0 0 auto;
-  border: 1px solid rgba(125, 198, 214, 0.28);
-  background: rgba(12, 28, 44, 0.82);
-  box-shadow: inset 0 0 28px rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(120, 200, 255, 0.22);
+  background: rgba(4, 17, 45, 0.72);
+  box-shadow: inset 0 0 28px rgba(102, 200, 255, 0.12);
   border-radius: 8px;
 }
 
@@ -105,8 +106,8 @@
     margin-right: 4px;
     padding: 1px;
     font-size: 12px;
-    background: rgba(14, 32, 50, 0.92);
-    border: 1px solid rgba(125, 198, 214, 0.38);
+    background: rgba(6, 26, 62, 0.92);
+    border: 1px solid rgba(120, 200, 255, 0.38);
   }
   :global(.ant-segmented-item) {
     line-height: 22px;
@@ -117,25 +118,25 @@
     color: #fff;
   }
   :global(.ant-segmented-item-selected) {
-    background: linear-gradient(180deg, rgba(59, 130, 246, 0.55), rgba(37, 99, 235, 0.5)) !important;
+    background: linear-gradient(180deg, rgba(47, 132, 255, 0.55), rgba(28, 88, 188, 0.5)) !important;
     color: #fff !important;
-    box-shadow: inset 0 0 10px rgba(125, 198, 214, 0.2);
+    box-shadow: inset 0 0 10px rgba(120, 200, 255, 0.2);
   }
   :global(.ant-segmented-thumb) {
-    background: linear-gradient(180deg, rgba(59, 130, 246, 0.45), rgba(37, 99, 235, 0.4)) !important;
+    background: linear-gradient(180deg, rgba(47, 132, 255, 0.45), rgba(28, 88, 188, 0.4)) !important;
   }
 
   :global(.ant-select .ant-select-selector) {
     min-height: 28px;
     padding: 0 8px;
     align-items: center;
-    background: rgba(14, 32, 50, 0.92) !important;
-    border-color: rgba(125, 198, 214, 0.38) !important;
+    background: rgba(6, 26, 62, 0.92) !important;
+    border-color: rgba(120, 200, 255, 0.38) !important;
     color: #d6efff !important;
   }
   :global(.ant-select:not(.ant-select-disabled):hover .ant-select-selector),
   :global(.ant-select-focused .ant-select-selector) {
-    border-color: rgba(34, 211, 238, 0.55) !important;
+    border-color: rgba(130, 210, 255, 0.55) !important;
   }
   :global(.ant-select-selection-item),
   :global(.ant-select-selection-placeholder) {
@@ -151,13 +152,13 @@
 
   :global(.ant-picker) {
     padding: 2px 6px;
-    background: rgba(14, 32, 50, 0.92) !important;
-    border-color: rgba(125, 198, 214, 0.38) !important;
+    background: rgba(6, 26, 62, 0.92) !important;
+    border-color: rgba(120, 200, 255, 0.38) !important;
     color: #d6efff !important;
   }
   :global(.ant-picker:hover),
   :global(.ant-picker-focused) {
-    border-color: rgba(34, 211, 238, 0.55) !important;
+    border-color: rgba(130, 210, 255, 0.55) !important;
   }
   :global(.ant-picker-input > input) {
     color: #d6efff !important;
@@ -176,22 +177,22 @@
     padding-inline: 8px;
   }
   :global(.ant-btn-default.ant-btn-sm) {
-    background: rgba(14, 32, 50, 0.92) !important;
-    border-color: rgba(125, 198, 214, 0.38) !important;
-    color: #bae6fd !important;
+    background: rgba(6, 26, 62, 0.92) !important;
+    border-color: rgba(120, 200, 255, 0.38) !important;
+    color: #9fd4ff !important;
   }
   :global(.ant-btn-default.ant-btn-sm:hover) {
-    border-color: rgba(34, 211, 238, 0.65) !important;
+    border-color: rgba(130, 210, 255, 0.65) !important;
     color: #fff !important;
-    background: rgba(20, 48, 72, 0.96) !important;
+    background: rgba(12, 42, 88, 0.96) !important;
   }
   :global(.ant-btn-primary.ant-btn-sm) {
-    border-color: rgba(59, 130, 246, 0.9) !important;
-    background: linear-gradient(180deg, rgba(59, 130, 246, 0.96), rgba(37, 99, 235, 0.92)) !important;
+    border-color: rgba(47, 132, 255, 0.9) !important;
+    background: linear-gradient(180deg, rgba(55, 143, 255, 0.95), rgba(28, 98, 218, 0.92)) !important;
     color: #fff !important;
   }
   :global(.ant-btn-primary.ant-btn-sm:hover:not(:disabled)) {
-    border-color: rgba(34, 211, 238, 0.75) !important;
+    border-color: rgba(130, 210, 255, 0.75) !important;
     filter: brightness(1.06);
   }
   :global(.ant-btn-primary.ant-btn-sm:disabled) {
@@ -201,11 +202,11 @@
 
 .biOpHeaderTitle {
   text-align: center;
-  color: #bae6fd;
+  color: #9fd4ff;
   font-size: 28px;
   letter-spacing: 2px;
   font-weight: 700;
-  text-shadow: 0 0 14px rgba(34, 211, 238, 0.28);
+  text-shadow: 0 0 14px rgba(102, 200, 255, 0.72);
 }
 
 .biOpHeaderLeft {
@@ -238,9 +239,9 @@
 }
 
 .biOpTopStat {
-  border: 1px solid rgba(125, 198, 214, 0.28);
-  background: linear-gradient(180deg, rgba(22, 58, 88, 0.32), rgba(8, 24, 38, 0.55));
-  box-shadow: inset 0 0 16px rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(81, 164, 255, 0.42);
+  background: linear-gradient(180deg, rgba(28, 76, 163, 0.24), rgba(8, 27, 66, 0.52));
+  box-shadow: inset 0 0 16px rgba(88, 185, 255, 0.15);
   border-radius: 4px;
   padding: 4px 8px;
 
@@ -251,11 +252,11 @@
   }
   .value {
     margin-top: 2px;
-    color: #d6efff;
+    color: #e8f4ff;
     font-weight: 700;
     font-size: 17px;
     line-height: 1.15;
-    text-shadow: 0 0 10px rgba(59, 130, 246, 0.35);
+    text-shadow: 0 0 10px rgba(95, 191, 255, 0.52);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -309,7 +310,7 @@
 .biOpPanel {
   border: 1px solid var(--panel-border);
   background: var(--panel-bg);
-  box-shadow: inset 0 0 18px rgba(125, 198, 214, 0.12);
+  box-shadow: inset 0 0 18px rgba(102, 200, 255, 0.12);
   border-radius: 4px;
   padding: 5px 6px 6px;
   margin-bottom: 0;
@@ -365,11 +366,11 @@
 }
 
 .biOpPanelTitle {
-  color: #93c5fd;
+  color: #79bcff;
   font-size: 12px;
   margin-bottom: 4px;
   font-weight: 600;
-  text-shadow: 0 0 10px rgba(59, 130, 246, 0.22);
+  text-shadow: 0 0 10px rgba(102, 200, 255, 0.6);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -401,8 +402,8 @@
 
   .sec {
     min-height: 0;
-    border: 1px solid rgba(125, 198, 214, 0.18);
-    background: radial-gradient(circle at 30% 20%, rgba(59, 130, 246, 0.12), rgba(8, 22, 34, 0.35));
+    border: 1px solid rgba(97, 176, 255, 0.22);
+    background: radial-gradient(circle at 30% 20%, rgba(40, 134, 237, 0.18), rgba(10, 40, 92, 0.18));
     border-radius: 4px;
     padding: 5px;
     display: flex;
@@ -452,8 +453,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: rgba(59, 130, 246, 0.32);
-    border: 1px solid rgba(125, 198, 214, 0.3);
+    background: rgba(43, 145, 255, 0.35);
+    border: 1px solid rgba(119, 203, 255, 0.35);
     color: rgba(236, 247, 255, 0.92);
     font-size: 11px;
     flex: 0 0 auto;
@@ -506,8 +507,8 @@
 .biOpMonitorItem {
   min-width: 0;
   min-height: 48px;
-  border: 1px solid rgba(125, 198, 214, 0.16);
-  background: linear-gradient(165deg, rgba(18, 48, 72, 0.45), rgba(10, 28, 42, 0.55));
+  border: 1px solid rgba(120, 200, 255, 0.16);
+  background: linear-gradient(165deg, rgba(18, 52, 108, 0.42), rgba(6, 22, 52, 0.55));
   padding: 6px 8px;
   border-radius: 4px;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
@@ -524,7 +525,7 @@
   }
   .desc {
     margin-top: 4px;
-    color: #7dd3fc;
+    color: #72b9ff;
     font-size: 10px;
   }
 }
@@ -533,10 +534,14 @@
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
-  /* 墨玉青蓝：中心略亮、边缘收进深青灰，避免纯黑底 */
+  /* 地图底：更暗靛蓝，弱纹理，突出中间地图块 */
   background:
-    radial-gradient(ellipse 92% 78% at 50% 44%, rgba(22, 58, 88, 0.55) 0%, rgba(12, 36, 56, 0.78) 52%, rgba(6, 20, 34, 0.92) 100%),
-    linear-gradient(185deg, rgba(16, 44, 68, 0.5) 0%, rgba(8, 26, 42, 0.82) 100%);
+    radial-gradient(ellipse 92% 82% at 50% 46%, rgba(18, 58, 108, 0.55) 0%, rgba(10, 36, 72, 0.88) 48%, rgba(4, 14, 36, 0.97) 100%),
+    radial-gradient(circle at 12% 16%, rgba(47, 132, 255, 0.06) 0%, transparent 40%),
+    radial-gradient(circle at 90% 20%, rgba(30, 90, 160, 0.08) 0%, transparent 38%),
+    radial-gradient(circle at 50% 100%, rgba(2, 8, 22, 0.65) 0%, transparent 48%),
+    repeating-linear-gradient(180deg, rgba(80, 150, 220, 0.02) 0 1px, transparent 1px 40px),
+    linear-gradient(188deg, rgba(8, 28, 58, 0.92) 0%, rgba(4, 10, 26, 0.98) 100%);
   overflow: hidden;
 }
 
@@ -558,10 +563,11 @@
   inset: -6%;
   z-index: 0;
   pointer-events: none;
+  /* 与底图衔接：略收亮度，避免与地图面块「各蓝各的」 */
   background:
-    radial-gradient(circle at 40% 36%, rgba(34, 211, 238, 0.14) 0%, transparent 46%),
-    radial-gradient(circle at 62% 58%, rgba(59, 130, 246, 0.12) 0%, transparent 52%),
-    radial-gradient(circle at 50% 88%, rgba(125, 198, 214, 0.1) 0%, transparent 44%);
+    radial-gradient(circle at 48% 40%, rgba(40, 100, 168, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 62% 58%, rgba(30, 80, 140, 0.1) 0%, transparent 52%),
+    radial-gradient(circle at 50% 92%, rgba(20, 70, 120, 0.06) 0%, transparent 48%);
   animation: biOpMapBreathe 7s ease-in-out infinite;
   will-change: transform, opacity;
 }
@@ -585,14 +591,14 @@
   z-index: 0;
   pointer-events: none;
   border-radius: 50%;
-  opacity: 0.62;
+  opacity: 0.38;
   background: conic-gradient(
     from 200deg at 50% 50%,
     transparent 0deg,
     transparent 250deg,
-    rgba(34, 211, 238, 0.12) 285deg,
-    rgba(125, 198, 214, 0.16) 310deg,
-    rgba(59, 130, 246, 0.1) 335deg,
+    rgba(130, 220, 255, 0.1) 285deg,
+    rgba(160, 220, 255, 0.14) 310deg,
+    rgba(130, 220, 255, 0.09) 335deg,
     transparent 360deg
   );
   mix-blend-mode: screen;
@@ -638,8 +644,8 @@
   z-index: 2;
   font-size: 11px;
   color: rgba(210, 238, 255, 0.78);
-  background: rgba(6, 18, 30, 0.62);
-  border: 1px solid rgba(125, 198, 214, 0.18);
+  background: rgba(3, 14, 38, 0.55);
+  border: 1px solid rgba(120, 200, 255, 0.18);
   padding: 2px 6px;
   border-radius: 4px;
   pointer-events: none;
@@ -651,7 +657,7 @@
   flex: 0 0 auto;
   overflow-y: auto;
   overflow-x: hidden;
-  border-top: 1px solid rgba(125, 198, 214, 0.22);
+  border-top: 1px solid rgba(120, 200, 255, 0.22);
   padding-top: 3px;
 
   .event {
@@ -668,8 +674,8 @@
     text-align: center;
     font-size: 11px;
     color: #ecf7ff;
-    background: rgba(59, 130, 246, 0.52);
-    border: 1px solid rgba(125, 198, 214, 0.42);
+    background: rgba(47, 132, 255, 0.52);
+    border: 1px solid rgba(120, 200, 255, 0.42);
     border-radius: 3px;
     padding: 1px 4px;
   }
@@ -805,8 +811,8 @@
 /* 挂到 body 的下拉/日历面板：与顶栏同色，避免展开后仍是白块 */
 .biOpSelectDropdown.ant-select-dropdown {
   padding: 4px;
-  background: rgba(10, 28, 42, 0.98) !important;
-  border: 1px solid rgba(125, 198, 214, 0.32);
+  background: rgba(6, 22, 52, 0.98) !important;
+  border: 1px solid rgba(120, 200, 255, 0.32);
   border-radius: 6px;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
 }
@@ -819,16 +825,16 @@
 }
 .biOpSelectDropdown .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
   font-weight: 600;
-  background: rgba(59, 130, 246, 0.38) !important;
+  background: rgba(47, 132, 255, 0.38) !important;
   color: #fff !important;
 }
 .biOpSelectDropdown .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
-  background: rgba(59, 130, 246, 0.22) !important;
+  background: rgba(47, 132, 255, 0.22) !important;
 }
 
 .biOpPickerDropdown.ant-picker-dropdown .ant-picker-panel-container {
-  background: rgba(10, 28, 42, 0.98) !important;
-  border: 1px solid rgba(125, 198, 214, 0.32);
+  background: rgba(6, 22, 52, 0.98) !important;
+  border: 1px solid rgba(120, 200, 255, 0.32);
   border-radius: 8px;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
 }
@@ -838,12 +844,12 @@
   color: rgba(220, 240, 255, 0.92);
 }
 .biOpPickerDropdown .ant-picker-cell:hover .ant-picker-cell-inner {
-  background: rgba(59, 130, 246, 0.22) !important;
+  background: rgba(47, 132, 255, 0.22) !important;
 }
 .biOpPickerDropdown .ant-picker-cell-selected .ant-picker-cell-inner,
 .biOpPickerDropdown .ant-picker-cell-range-start .ant-picker-cell-inner,
 .biOpPickerDropdown .ant-picker-cell-range-end .ant-picker-cell-inner {
-  background: rgba(59, 130, 246, 0.55) !important;
+  background: rgba(47, 132, 255, 0.55) !important;
 }
 
 .biOpHeaderToolbar.ant-space {

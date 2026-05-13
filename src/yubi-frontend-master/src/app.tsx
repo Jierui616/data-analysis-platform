@@ -116,6 +116,9 @@ export const layout: RunTimeLayoutConfig = ({ initialState, setInitialState }) =
     /** SettingDrawer / 历史缓存里的 settings 会覆盖 layout，侧栏 Logo 需固定为项目资源 */
     logo: defaultSettings.logo,
     title: defaultSettings.title,
+    /** 答辩/大屏：侧栏固定展开（覆盖本地缓存里 collapsed=true），并关闭响应式自动收起 */
+    collapsed: false,
+    breakpoint: false,
   };
 };
 

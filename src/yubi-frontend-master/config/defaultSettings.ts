@@ -6,6 +6,9 @@ import { ProLayoutProps } from '@ant-design/pro-components';
 const Settings: ProLayoutProps & {
   pwa?: boolean;
   logo?: string;
+  /** ProLayout：避免 md 断点默认收起侧栏（演示时保持展开） */
+  defaultCollapsed?: boolean;
+  breakpoint?: false;
 } = {
   navTheme: 'light',
   /** 与大屏主题主色对齐，便于全站观感统一 */
@@ -14,6 +17,10 @@ const Settings: ProLayoutProps & {
   contentWidth: 'Fluid',
   fixedHeader: false,
   fixSiderbar: true,
+  /** @see @ant-design/pro-layout：md 宽度下默认 true 会收起菜单，答辩/大屏路由希望默认展开 */
+  defaultCollapsed: false,
+  /** 禁用侧栏响应式折叠断点，避免窗口变窄时菜单被收起 */
+  breakpoint: false,
   colorWeak: false,
   title: '湖仓数智金融分析平台',
   pwa: true,

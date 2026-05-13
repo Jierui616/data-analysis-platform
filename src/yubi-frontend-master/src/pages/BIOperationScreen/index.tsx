@@ -24,61 +24,61 @@ import './index.less';
 type ViewKey = 'hq' | 'store' | 'region';
 const BI_OP_VIEW_STORAGE_KEY = 'bi_operation_screen_view';
 
-/** 顶栏 Ant 控件：墨玉青蓝（方案 B）— 青灰底 + 主蓝 + 青色高光 */
+/** 顶栏 Ant 控件：方案 A 靛蓝雾面 — 与 #2f84ff / #66c8ff 强调色一致 */
 const BI_OP_HEADER_THEME: ThemeConfig = {
   components: {
     Segmented: {
-      trackBg: 'rgba(14, 32, 50, 0.96)',
-      itemColor: 'rgba(226, 240, 248, 0.9)',
+      trackBg: 'rgba(6, 26, 62, 0.96)',
+      itemColor: 'rgba(210, 238, 255, 0.9)',
       itemHoverColor: '#ffffff',
-      itemHoverBg: 'rgba(59, 130, 246, 0.2)',
-      itemSelectedBg: 'rgba(59, 130, 246, 0.48)',
+      itemHoverBg: 'rgba(47, 132, 255, 0.18)',
+      itemSelectedBg: 'rgba(47, 132, 255, 0.52)',
       itemSelectedColor: '#ffffff',
-      itemActiveBg: 'rgba(59, 130, 246, 0.3)',
+      itemActiveBg: 'rgba(47, 132, 255, 0.28)',
     },
     Select: {
-      colorBgContainer: 'rgba(14, 32, 50, 0.96)',
-      colorBorder: 'rgba(125, 198, 214, 0.34)',
+      colorBgContainer: 'rgba(6, 26, 62, 0.96)',
+      colorBorder: 'rgba(120, 200, 255, 0.22)',
       colorText: '#e8f4ff',
-      colorTextPlaceholder: 'rgba(148, 208, 230, 0.45)',
-      colorTextQuaternary: 'rgba(170, 218, 235, 0.78)',
-      colorTextTertiary: 'rgba(170, 218, 235, 0.7)',
-      activeBorderColor: 'rgba(34, 211, 238, 0.55)',
-      hoverBorderColor: 'rgba(34, 211, 238, 0.45)',
-      controlOutline: 'rgba(59, 130, 246, 0.35)',
+      colorTextPlaceholder: 'rgba(159, 212, 255, 0.48)',
+      colorTextQuaternary: 'rgba(159, 212, 255, 0.78)',
+      colorTextTertiary: 'rgba(159, 212, 255, 0.72)',
+      activeBorderColor: 'rgba(130, 210, 255, 0.58)',
+      hoverBorderColor: 'rgba(130, 210, 255, 0.52)',
+      controlOutline: 'rgba(47, 132, 255, 0.35)',
     },
     DatePicker: {
-      colorBgContainer: 'rgba(14, 32, 50, 0.96)',
-      colorBorder: 'rgba(125, 198, 214, 0.34)',
+      colorBgContainer: 'rgba(6, 26, 62, 0.96)',
+      colorBorder: 'rgba(120, 200, 255, 0.22)',
       colorText: '#e8f4ff',
-      colorTextPlaceholder: 'rgba(148, 208, 230, 0.45)',
-      activeBorderColor: 'rgba(34, 211, 238, 0.55)',
-      hoverBorderColor: 'rgba(34, 211, 238, 0.45)',
-      colorSplit: 'rgba(125, 198, 214, 0.36)',
-      cellActiveWithRangeBg: 'rgba(59, 130, 246, 0.22)',
+      colorTextPlaceholder: 'rgba(159, 212, 255, 0.48)',
+      activeBorderColor: 'rgba(130, 210, 255, 0.58)',
+      hoverBorderColor: 'rgba(130, 210, 255, 0.52)',
+      colorSplit: 'rgba(120, 200, 255, 0.28)',
+      cellActiveWithRangeBg: 'rgba(47, 132, 255, 0.22)',
     },
     Button: {
-      defaultBg: 'rgba(14, 32, 50, 0.96)',
-      defaultColor: '#bae6fd',
-      defaultBorderColor: 'rgba(125, 198, 214, 0.34)',
-      defaultHoverBg: 'rgba(20, 48, 72, 0.98)',
+      defaultBg: 'rgba(6, 26, 62, 0.96)',
+      defaultColor: '#a8d8ff',
+      defaultBorderColor: 'rgba(120, 200, 255, 0.22)',
+      defaultHoverBg: 'rgba(14, 44, 92, 0.98)',
       defaultHoverColor: '#ffffff',
-      defaultHoverBorderColor: 'rgba(34, 211, 238, 0.58)',
-      colorPrimary: '#3b82f6',
-      colorPrimaryHover: '#60a5fa',
-      colorPrimaryActive: '#2563eb',
+      defaultHoverBorderColor: 'rgba(130, 210, 255, 0.62)',
+      colorPrimary: '#2f84ff',
+      colorPrimaryHover: '#4a9dff',
+      colorPrimaryActive: '#1f6cdb',
     },
   },
 };
 
 const THEME = {
-  main: '#3b82f6',
-  sub: '#22d3ee',
-  accent: '#7dd3fc',
+  main: '#2f84ff',
+  sub: '#66c8ff',
+  accent: '#9ad9ff',
   orange: '#ff9a3d',
   yellow: '#ffd166',
-  border: 'rgba(125, 198, 214, 0.34)',
-  glow: 'rgba(59, 130, 246, 0.18)',
+  border: 'rgba(120, 200, 255, 0.18)',
+  glow: 'rgba(102, 200, 255, 0.2)',
 } as const;
 
 const PANZHIHUA_DISTRICTS = ['东区', '西区', '仁和区', '米易县', '盐边县'] as const;
@@ -1108,13 +1108,13 @@ const BIOperationScreen: React.FC = () => {
       xAxis: {
         type: 'category',
         data: labels,
-        axisLabel: { color: '#8eb0cc', fontSize: 10 },
-        axisLine: { lineStyle: { color: 'rgba(120,165,198,.42)' } },
+        axisLabel: { color: '#75a8e6', fontSize: 10 },
+        axisLine: { lineStyle: { color: 'rgba(99,157,229,.45)' } },
       },
       yAxis: {
         type: 'value',
-        axisLabel: { color: '#8eb0cc', fontSize: 10 },
-        splitLine: { lineStyle: { color: 'rgba(120,165,198,.12)' } },
+        axisLabel: { color: '#75a8e6', fontSize: 10 },
+        splitLine: { lineStyle: { color: 'rgba(99,157,229,.15)' } },
       },
       series: [
         {
@@ -1127,8 +1127,8 @@ const BIOperationScreen: React.FC = () => {
           itemStyle: { color: THEME.accent },
           areaStyle: {
             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(34,211,238,.32)' },
-              { offset: 1, color: 'rgba(34,211,238,0)' },
+              { offset: 0, color: 'rgba(42,206,255,.38)' },
+              { offset: 1, color: 'rgba(42,206,255,0)' },
             ]),
           },
         },
@@ -1156,7 +1156,7 @@ const BIOperationScreen: React.FC = () => {
           itemStyle: { borderColor: 'rgba(18, 40, 80, 0.85)', borderWidth: 1 },
         },
       ],
-      color: [THEME.sub, THEME.main, '#60a5fa', THEME.accent, 'rgba(125,198,214,0.5)', THEME.yellow],
+      color: [THEME.sub, THEME.main, THEME.accent, 'rgba(102,200,255,0.55)', 'rgba(47,132,255,0.35)', THEME.yellow],
     };
   }, [topDishes]);
 
@@ -1177,7 +1177,7 @@ const BIOperationScreen: React.FC = () => {
         itemWidth: 14,
         itemHeight: 8,
         itemGap: 12,
-        textStyle: { color: 'rgba(200, 220, 240, 0.88)', fontSize: 10 },
+        textStyle: { color: '#8fb9ef', fontSize: 10 },
       },
       graphic: [
         {
@@ -1215,18 +1215,18 @@ const BIOperationScreen: React.FC = () => {
             length: 10,
             length2: 12,
             smooth: 0.2,
-            lineStyle: { color: 'rgba(125,198,214,.65)' },
+            lineStyle: { color: 'rgba(143,185,239,.7)' },
           },
           itemStyle: {
             borderColor: 'rgba(8, 30, 70, 0.9)',
             borderWidth: 1,
             shadowBlur: 10,
-            shadowColor: 'rgba(59, 130, 246, 0.22)',
+            shadowColor: 'rgba(70, 190, 255, 0.25)',
           },
           data: sorted,
         },
       ],
-      color: [THEME.sub, THEME.main, '#60a5fa', '#38bdf8', THEME.accent],
+      color: ['#62d7ff', '#3f97ff', '#5f7cff', '#37c8a9', THEME.accent],
     };
   }, [districtRevenue]);
 
@@ -1242,13 +1242,13 @@ const BIOperationScreen: React.FC = () => {
       xAxis: {
         type: 'category',
         data: labels,
-        axisLabel: { color: '#8eb0cc', fontSize: 10 },
-        axisLine: { lineStyle: { color: 'rgba(120,165,198,.42)' } },
+        axisLabel: { color: '#75a8e6', fontSize: 10 },
+        axisLine: { lineStyle: { color: 'rgba(99,157,229,.45)' } },
       },
       yAxis: {
         type: 'value',
-        axisLabel: { color: '#8eb0cc', fontSize: 10 },
-        splitLine: { lineStyle: { color: 'rgba(120,165,198,.12)' } },
+        axisLabel: { color: '#75a8e6', fontSize: 10 },
+        splitLine: { lineStyle: { color: 'rgba(99,157,229,.15)' } },
       },
       series: [
         {
@@ -1258,8 +1258,8 @@ const BIOperationScreen: React.FC = () => {
           itemStyle: {
             borderRadius: [4, 4, 0, 0],
             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: THEME.sub },
-              { offset: 1, color: THEME.main },
+              { offset: 0, color: '#2be5ff' },
+              { offset: 1, color: '#1979ff' },
             ]),
           },
         },
@@ -1275,12 +1275,13 @@ const BIOperationScreen: React.FC = () => {
   const mapOption = useMemo(() => {
     // 关键：按容器短边计算地图尺寸，避免“按高度放大”导致总部（中列更窄）视觉被挤大
     const shortSide = Math.min(Number(mapSize.width || 0), Number(mapSize.height || 0));
-    // 总部视角按页面视觉中心下移一点，避免地图重心过高
-    const sizeRatio = view === 'hq' ? 0.84 : 0.9;
-    const tiltLayoutSize = shortSide > 0 ? Math.round(shortSide * sizeRatio) : view === 'hq' ? '84%' : '88%';
-    const tiltLayoutCenter: [string, string] = view === 'hq' ? ['50%', '42%'] : ['50%', '50%'];
-    const canZoomMap = view === 'store';
-    const canMoveMap = view !== 'hq';
+    // 总部/门店：地图几何中心对齐容器中心；区域视角同上
+    const sizeRatio = view === 'hq' ? 0.88 : 0.9;
+    const tiltLayoutSize = shortSide > 0 ? Math.round(shortSide * sizeRatio) : '88%';
+    const tiltLayoutCenter: [string, string] = ['50%', '50%'];
+    // 区域：仅平移便于扫边界；总部/门店：可缩放（总部用 scale 避免误拖把整个城市拖出画框）
+    const roam: true | 'move' | 'scale' = view === 'region' ? 'move' : view === 'hq' ? 'scale' : true;
+    const canScale = view !== 'region';
     return {
       backgroundColor: 'transparent',
       graphic: [],
@@ -1299,12 +1300,11 @@ const BIOperationScreen: React.FC = () => {
       // 取消营收热力填充：统一底色
       geo: {
         map: 'pzhCity',
-        // 总部固定视图（不可拖拽不可缩放），门店可缩放，区域可拖拽
-        roam: canZoomMap ? true : canMoveMap ? 'move' : false,
+        roam,
         zoom: 1,
         scaleLimit: {
-          min: canZoomMap ? 0.8 : 1,
-          max: canZoomMap ? 6 : 1,
+          min: canScale ? 0.75 : 1,
+          max: canScale ? 6 : 1,
         },
         layoutCenter: tiltLayoutCenter,
         layoutSize: tiltLayoutSize,
@@ -1312,15 +1312,15 @@ const BIOperationScreen: React.FC = () => {
         // Geo 不参与绘制区县名（由下方 map serie 出面心 label），避免以后误开两套字重叠
         label: { show: false },
         itemStyle: {
-          areaColor: 'rgba(30, 72, 118, 0.78)',
-          borderColor: 'rgba(125, 198, 214, 0.48)',
-          borderWidth: 1.3,
+          areaColor: 'rgba(18, 72, 138, 0.88)',
+          borderColor: 'rgba(120, 200, 255, 0.42)',
+          borderWidth: 1.2,
         },
         emphasis: {
           itemStyle: {
-            areaColor: 'rgba(59, 130, 246, 0.42)',
-            borderColor: 'rgba(34, 211, 238, 0.92)',
-            borderWidth: 1.8,
+            areaColor: 'rgba(36, 110, 188, 0.72)',
+            borderColor: 'rgba(180, 230, 255, 0.85)',
+            borderWidth: 1.6,
           },
         },
       },
@@ -1334,19 +1334,19 @@ const BIOperationScreen: React.FC = () => {
           zlevel: 8,
           itemStyle: {
             areaColor: 'transparent',
-            borderColor: 'rgba(34, 211, 238, 0.88)',
+            borderColor: 'rgba(86, 200, 255, 0.92)',
             borderWidth: 2.4,
-            shadowBlur: 26,
-            shadowColor: 'rgba(34, 211, 238, 0.55)',
+            shadowBlur: 22,
+            shadowColor: 'rgba(70, 180, 255, 0.55)',
             shadowOffsetY: 0,
           },
           emphasis: {
             itemStyle: {
-              areaColor: 'rgba(59, 130, 246, 0.2)',
-              borderColor: 'rgba(125, 211, 230, 0.95)',
+              areaColor: 'rgba(40, 110, 175, 0.28)',
+              borderColor: 'rgba(160, 235, 255, 0.95)',
               borderWidth: 3,
-              shadowBlur: 32,
-              shadowColor: 'rgba(125, 211, 230, 0.65)',
+              shadowBlur: 28,
+              shadowColor: 'rgba(140, 220, 255, 0.75)',
             },
           },
           label: { show: false },
@@ -1360,19 +1360,19 @@ const BIOperationScreen: React.FC = () => {
           // 区名由上方“行政边界”系列统一绘制，防止双图层 label 互相覆盖/抖动
           label: { show: false },
           itemStyle: {
-            // 常态统一底色，避免多区同时“亮起”
-            areaColor: 'rgba(28, 78, 128, 0.88)',
-            borderColor: 'rgba(125, 198, 214, 0.65)',
-            borderWidth: 1.5,
-            shadowBlur: 12,
-            shadowColor: 'rgba(59, 130, 246, 0.22)',
+            // 常态统一底色，避免多区同时“亮起”（略暗靛蓝，与底图对比更稳）
+            areaColor: 'rgba(22, 88, 158, 0.92)',
+            borderColor: 'rgba(130, 210, 255, 0.55)',
+            borderWidth: 1.4,
+            shadowBlur: 10,
+            shadowColor: 'rgba(40, 120, 200, 0.22)',
           },
           emphasis: {
             label: { show: false },
             itemStyle: {
-              areaColor: 'rgba(59, 130, 246, 0.55)',
+              areaColor: 'rgba(48, 130, 210, 0.82)',
               shadowBlur: 22,
-              shadowColor: 'rgba(34, 211, 238, 0.45)',
+              shadowColor: 'rgba(90, 200, 255, 0.45)',
             },
           },
         },
@@ -1415,18 +1415,18 @@ const BIOperationScreen: React.FC = () => {
                   borderRadius: 3,
                 },
                 itemStyle: {
-                  color: THEME.sub,
-                  borderColor: 'rgba(240, 249, 255, 1)',
+                  color: 'rgba(86, 233, 255, 1)',
+                  borderColor: 'rgba(240, 252, 255, 1)',
                   borderWidth: 2,
-                  shadowBlur: 20,
-                  shadowColor: 'rgba(34, 211, 238, 0.55)',
+                  shadowBlur: 22,
+                  shadowColor: 'rgba(86, 233, 255, 1)',
                 },
                 emphasis: {
                   scale: true,
                   itemStyle: {
-                    color: THEME.accent,
-                    shadowBlur: 28,
-                    shadowColor: 'rgba(125, 211, 230, 0.65)',
+                    color: 'rgba(120, 245, 255, 1)',
+                    shadowBlur: 30,
+                    shadowColor: 'rgba(120,245,255,1)',
                   },
                 },
                 tooltip: {
@@ -1732,18 +1732,18 @@ const BIOperationScreen: React.FC = () => {
       legend: {
         top: 0,
         right: 0,
-        textStyle: { color: 'rgba(200, 220, 240, 0.88)', fontSize: 10 },
+        textStyle: { color: '#8fb9ef', fontSize: 10 },
       },
       xAxis: {
         type: 'category',
         data: labels,
-        axisLabel: { color: '#8eb0cc', fontSize: 10 },
-        axisLine: { lineStyle: { color: 'rgba(120,165,198,.42)' } },
+        axisLabel: { color: '#75a8e6', fontSize: 10 },
+        axisLine: { lineStyle: { color: 'rgba(99,157,229,.45)' } },
       },
       yAxis: {
         type: 'value',
-        axisLabel: { color: '#8eb0cc', fontSize: 10 },
-        splitLine: { lineStyle: { color: 'rgba(120,165,198,.12)' } },
+        axisLabel: { color: '#75a8e6', fontSize: 10 },
+        splitLine: { lineStyle: { color: 'rgba(99,157,229,.15)' } },
       },
       tooltip: {
         trigger: 'axis',
@@ -1756,7 +1756,7 @@ const BIOperationScreen: React.FC = () => {
           data: upper,
           smooth: true,
           symbol: 'none',
-          lineStyle: { color: 'rgba(125,198,214,.38)', type: 'dashed' },
+          lineStyle: { color: 'rgba(102,200,255,.45)', type: 'dashed' },
         },
         {
           name: '下界',
@@ -1764,9 +1764,9 @@ const BIOperationScreen: React.FC = () => {
           data: lower,
           smooth: true,
           symbol: 'none',
-          lineStyle: { color: 'rgba(125,198,214,.38)', type: 'dashed' },
+          lineStyle: { color: 'rgba(102,200,255,.45)', type: 'dashed' },
           areaStyle: {
-            color: 'rgba(34, 211, 238, 0.12)',
+            color: 'rgba(52, 209, 255, 0.15)',
           },
         },
         {
@@ -1776,8 +1776,8 @@ const BIOperationScreen: React.FC = () => {
           smooth: true,
           symbol: 'circle',
           symbolSize: 5,
-          lineStyle: { color: THEME.sub, width: 2 },
-          itemStyle: { color: THEME.accent },
+          lineStyle: { color: '#34d1ff', width: 2 },
+          itemStyle: { color: '#8ff5ff' },
         },
       ],
       backgroundColor: 'transparent',
@@ -1981,7 +1981,7 @@ const BIOperationScreen: React.FC = () => {
           data,
         },
       ],
-      color: [THEME.sub, THEME.main, '#60a5fa', '#38bdf8', THEME.yellow],
+      color: ['#62d7ff', '#3f97ff', '#5f7cff', '#37c8a9', THEME.yellow],
     };
   }, [hqRegionRankRows]);
 
