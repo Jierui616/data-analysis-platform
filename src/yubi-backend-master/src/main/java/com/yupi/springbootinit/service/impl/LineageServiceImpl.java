@@ -442,16 +442,12 @@ public class LineageServiceImpl implements LineageService {
     }
 
     private void softDeleteEdgesForRun(String traceId) {
-        if (StringUtils.isBlank(traceId)) {
-            return;
-        }
-        // @TableLogic 字段不会参与实体 update 的 SET，必须用 Wrapper 显式 set，否则会生成 UPDATE ... WHERE 无 SET 的非法 SQL
-        LambdaUpdateWrapper<LineageEdge> uw = new LambdaUpdateWrapper<>();
-        uw.eq(LineageEdge::getRunId, traceId)
-                .eq(LineageEdge::getIsDelete, 0)
-                .set(LineageEdge::getIsDelete, 1)
-                .set(LineageEdge::getUpdateTime, new Date());
-        lineageEdgeMapper.update(null, uw);
+        LineageEdge patch = new LineageEdge();
+        patch.setIsDelete(1);
+        UpdateWrapper<LineageEdge> uw = new UpdateWrapper<>();
+        uw.eq("runId", traceId);
+        uw.eq("isDelete", 0);
+        lineageEdgeMapper.update(patch, uw);
     }
 
     private String edgeToMetaJson(LineageGraphEdgeVO edge) {
