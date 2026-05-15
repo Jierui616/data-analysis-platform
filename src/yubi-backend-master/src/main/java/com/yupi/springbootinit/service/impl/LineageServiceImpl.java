@@ -1,7 +1,7 @@
 package com.yupi.springbootinit.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -432,12 +432,12 @@ public class LineageServiceImpl implements LineageService {
     }
 
     private void softDeleteEdgesForRun(String traceId) {
-        LineageEdge patch = new LineageEdge();
-        patch.setIsDelete(1);
-        UpdateWrapper<LineageEdge> uw = new UpdateWrapper<>();
-        uw.eq("runId", traceId);
-        uw.eq("isDelete", 0);
-        lineageEdgeMapper.update(patch, uw);
+        // @TableLogic 字段不会参与「实体 + Wrapper」的 SET 拼装，会导致 UPDATE ... WHERE 无 SET 语法错误；用 Wrapper 显式 set
+        LambdaUpdateWrapper<LineageEdge> uw = new LambdaUpdateWrapper<>();
+        uw.set(LineageEdge::getIsDelete, 1)
+                .eq(LineageEdge::getRunId, traceId)
+                .eq(LineageEdge::getIsDelete, 0);
+        lineageEdgeMapper.update(null, uw);
     }
 
     private String edgeToMetaJson(LineageGraphEdgeVO edge) {
