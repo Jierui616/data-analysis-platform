@@ -1,7 +1,7 @@
 package com.yupi.springbootinit.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -33,6 +33,8 @@ import com.yupi.springbootinit.model.vo.lineage.LineageTraceVO;
 import com.yupi.springbootinit.service.LineageService;
 import com.yupi.springbootinit.utils.CsvTableUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,6 +61,9 @@ import java.util.regex.Pattern;
 
 @Service
 public class LineageServiceImpl implements LineageService {
+
+    private static final Logger log = LoggerFactory.getLogger(LineageServiceImpl.class);
+
     private static final Gson GSON = new Gson();
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     /** 物化入库时使用较大深度，便于查询侧拿到完整链路（查询仍可按 depth 走推导降级）。 */
@@ -108,7 +113,12 @@ public class LineageServiceImpl implements LineageService {
         event.setStatus(defaultIfBlank(request.getStatus(), "succeed"));
         event.setOperatorId(request.getOperatorId());
         lineageEventMapper.insert(event);
-        syncMaterializedLineageForTrace(request.getTraceId());
+        try {
+            syncMaterializedLineageForTrace(request.getTraceId());
+        } catch (Exception e) {
+            // 物化 node/edge 失败不应回滚 lineage_event，否则智能分析成功但血缘全空、前端报系统异常
+            log.error("syncMaterializedLineageForTrace failed, traceId={}", request.getTraceId(), e);
+        }
     }
 
     @Override
@@ -432,12 +442,16 @@ public class LineageServiceImpl implements LineageService {
     }
 
     private void softDeleteEdgesForRun(String traceId) {
-        LineageEdge patch = new LineageEdge();
-        patch.setIsDelete(1);
-        UpdateWrapper<LineageEdge> uw = new UpdateWrapper<>();
-        uw.eq("runId", traceId);
-        uw.eq("isDelete", 0);
-        lineageEdgeMapper.update(patch, uw);
+        if (StringUtils.isBlank(traceId)) {
+            return;
+        }
+        // @TableLogic 字段不会参与实体 update 的 SET，必须用 Wrapper 显式 set，否则会生成 UPDATE ... WHERE 无 SET 的非法 SQL
+        LambdaUpdateWrapper<LineageEdge> uw = new LambdaUpdateWrapper<>();
+        uw.eq(LineageEdge::getRunId, traceId)
+                .eq(LineageEdge::getIsDelete, 0)
+                .set(LineageEdge::getIsDelete, 1)
+                .set(LineageEdge::getUpdateTime, new Date());
+        lineageEdgeMapper.update(null, uw);
     }
 
     private String edgeToMetaJson(LineageGraphEdgeVO edge) {

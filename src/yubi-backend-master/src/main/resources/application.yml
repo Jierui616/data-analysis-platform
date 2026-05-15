@@ -122,7 +122,7 @@ dashscope:
   # 注意：冒号后面必须有空格，例如 api-key: sk-xxxx（写成 api-key:sk-xxxx 会整份 yml 解析失败）
   api-key: sk-d737d4f2cb744bbd85265efe26b123ec
   # 模型名以百炼控制台「OpenAI 兼容」文档为准，可换：qwen-turbo / qwen-plus / qwen-max / qwen-long / qwen2.5-7b-instruct 等
-  model: qwen2.5-vl-72b-instruct
+  model: qwen-plus-latest
 # qwen3-32b qwen-max-2025-01-25 qwen-plus-2025-07-28 qwen2.5-vl-72b-instruct qwen-plus-latest
 
 # BI Center：overview 结果缓存（命中可跳过查库 + CSV 解析 + 计算）
