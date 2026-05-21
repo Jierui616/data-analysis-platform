@@ -3,7 +3,6 @@ package com.yupi.springbootinit.config.bigdata;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import javax.sql.DataSource;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,8 +28,7 @@ public class ClickHouseConfig {
     }
 
     @Bean(name = "clickHouseJdbcTemplate")
-    public JdbcTemplate clickHouseJdbcTemplate(
-            @Qualifier("clickHouseDataSource") DataSource clickHouseDataSource) {
+    public JdbcTemplate clickHouseJdbcTemplate(DataSource clickHouseDataSource) {
         return new JdbcTemplate(clickHouseDataSource);
     }
 }

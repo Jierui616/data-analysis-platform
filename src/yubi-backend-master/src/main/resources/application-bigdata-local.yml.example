@@ -10,10 +10,6 @@ bigdata:
   clickhouse:
     enabled: true
     prefer-read: true
-    # ClickHouse 24.8 Docker 镜像 default 用户密码为字面量 ""（两个引号），不是空串
-    url: jdbc:clickhouse://127.0.0.1:8123/yubi_analytics
-    username: default
-    password: '""'
   kafka:
     enabled: true
     bootstrap-servers: localhost:9092

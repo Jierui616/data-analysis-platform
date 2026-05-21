@@ -108,7 +108,7 @@ docker compose -f docker-compose.bigdata.yml down -v
 | MinIO 控制台 | **9101** | 浏览器打开 `http://localhost:9101` |
 
 - **MinIO** 默认凭据：`minioadmin` / `minioadmin123`（仅开发用，勿用于生产）。  
-- **ClickHouse** 默认用户 `default`；**24.8 官方镜像**在 HTTP/JDBC 下密码为字面量 **`""`**（两个双引号字符，不是空串），`application-bigdata-local.yml` 中需写 `password: '""'`。首次需初始化库表（见下方「ClickHouse 初始化」）。  
+- **ClickHouse** 默认用户 `default`，**无密码**（仅开发用）。首次启动会创建库 **`yubi_analytics`**。  
 - **Kafka**：`auto.create.topics.enable=true`，可直接用客户端发消息建 Topic。
 
 ### 3. 与 Spring 后端联调（已接入）
@@ -139,20 +139,8 @@ docker compose -f docker-compose.bigdata.yml down -v
 | **MinIO** | 图表原始 CSV 对象存储 |
 | **RabbitMQ** | 不变，仍负责 `/chart/gen/async/mq` 异步 AI 任务 |
 
-### 4. ClickHouse 初始化（`yubi-clickhouse-init` 失败时手动执行）
+### 4. 常见问题
 
-若 `docker compose -f docker-compose.bigdata.yml up -d` 后 **`yubi-clickhouse-init` 为 Exited**，库 **`yubi_analytics`** 可能未创建，在后端目录执行：
-
-```powershell
-cd "<项目根>\src\yubi-backend-master"
-Get-Content .\sql\clickhouse\01_init_analytics.sql | docker exec -i yubi-clickhouse clickhouse-client --multiquery
-```
-
-### 5. 常见问题
-
-- **后端启用 `bigdata-local` 报 `AUTHENTICATION_FAILED`（Code 516）**：多为 JDBC 用了空密码，而 Docker ClickHouse 实际密码为 **`""`**；确认 `application-bigdata-local.yml` 中 `bigdata.clickhouse.password: '""'`（勿只配 `spring.datasource.clickhouse`，后端读的是 **`bigdata.clickhouse`**）。
-- **登录报「系统错误」、日志里 `Unknown table 'user'` 且 JDBC 为 `ClickHouseConnectionImpl`**：曾出现 ClickHouse 数据源抢占 MyBatis 主库；请拉取最新代码（含 `MysqlPrimaryDataSourceConfig`）后重启后端。
-- **不想联调大数据栈**：不要设置 `SPRING_PROFILES_ACTIVE` 中的 `bigdata-local`，仅保留 `dev` 即可（`bigdata.enabled` 默认为 false）。
 - **拉取镜像 `403 Forbidden`（如 `dockerhub.azk8s.cn` + `bitnami/*`）**：Compose 已改为 **`apache/kafka` 官方镜像**；若仍 403，可在 Docker Desktop 里暂时关闭/更换 `registry-mirrors`，或对 `docker.io` 使用可拉取的代理源。  
 - **端口被占用**：修改 `docker-compose.bigdata.yml` 左侧宿主机端口后再 `up`。  
 - **Kafka 从本机 Java 连接**：Bootstrap 使用 **`localhost:9092`**（与官方示例中 `PLAINTEXT_HOST://localhost:9092` 一致）。  
