@@ -23,9 +23,14 @@ import com.yupi.springbootinit.model.entity.restaurant.StoreCostDailyMetric;
 import com.yupi.springbootinit.model.entity.restaurant.StoreDailyMetric;
 import com.yupi.springbootinit.model.entity.restaurant.StoreStaffDailyMetric;
 import com.yupi.springbootinit.model.entity.restaurant.StoreUserRole;
+import com.yupi.springbootinit.config.bigdata.BigDataProperties;
 import com.yupi.springbootinit.service.RestaurantBiService;
 import com.yupi.springbootinit.service.ChartService;
 import com.yupi.springbootinit.service.UserService;
+import com.yupi.springbootinit.service.bigdata.BigDataEventPublisher;
+import com.yupi.springbootinit.service.bigdata.BigDataStackProbeService;
+import com.yupi.springbootinit.service.bigdata.ClickHouseMetricRepository;
+import com.yupi.springbootinit.service.bigdata.MetricSyncService;
 import com.yupi.springbootinit.service.storage.ChartDataResolverService;
 import com.yupi.springbootinit.utils.CsvTableUtils;
 import java.math.BigDecimal;
@@ -92,13 +97,34 @@ public class RestaurantBiServiceImpl implements RestaurantBiService {
     @Resource
     private ChartDataResolverService chartDataResolverService;
 
+    @Resource
+    private BigDataProperties bigDataProperties;
+
+    @Resource
+    private MetricSyncService metricSyncService;
+
+    @Resource
+    private BigDataStackProbeService bigDataStackProbeService;
+
+    @Resource
+    private BigDataEventPublisher bigDataEventPublisher;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ClickHouseMetricRepository clickHouseMetricRepository;
+
     @Override
     public Map<String, Object> getHqOverview(User loginUser, Map<String, Object> requestBody) {
         LocalDate[] range = parseDateRange(requestBody);
         AccessScope scope = resolveScope(loginUser, requestBody);
-        List<StoreDailyMetric> rows = listStoreDailyMetrics(scope.storeIds, range[0], range[1]);
+        String analyticsEngine = resolveAnalyticsEngine();
+        List<StoreDailyMetric> rows = resolveStoreDailyMetrics(scope.storeIds, range[0], range[1], analyticsEngine);
 
-        Map<Long, BigDecimal> mergedStoreRevenue = mergeStoreRevenueWithDishFallback(scope.storeIds, range[0], range[1]);
+        Map<Long, BigDecimal> mergedStoreRevenue;
+        if ("clickhouse".equals(analyticsEngine)) {
+            mergedStoreRevenue = mergeRevenueFromRows(rows);
+        } else {
+            mergedStoreRevenue = mergeStoreRevenueWithDishFallback(scope.storeIds, range[0], range[1]);
+        }
         BigDecimal totalRevenue = BigDecimal.ZERO;
         for (BigDecimal v : mergedStoreRevenue.values()) {
             totalRevenue = totalRevenue.add(v);
@@ -124,6 +150,7 @@ public class RestaurantBiServiceImpl implements RestaurantBiService {
         data.put("trend", trend);
         data.put("storeRank", storeRank);
         data.put("alerts", toAlertList(alerts));
+        data.put("bigData", buildBigDataOverviewMeta(analyticsEngine));
         return data;
     }
 
@@ -757,6 +784,7 @@ public class RestaurantBiServiceImpl implements RestaurantBiService {
         result.put("message", "ok");
         String storeMeta = "stores=" + importedStoreIds.stream().map(String::valueOf).collect(Collectors.joining(","));
         recordImportLog(loginUser, "cost", importMode, rows.size(), upsert, invalidStoreRows, minDate, maxDate, "ok", storeMeta);
+        publishImportBigDataEvent(loginUser, "cost", upsert);
         return result;
     }
 
@@ -840,6 +868,7 @@ public class RestaurantBiServiceImpl implements RestaurantBiService {
         result.put("message", "ok");
         String storeMeta = "stores=" + importedStoreIds.stream().map(String::valueOf).collect(Collectors.joining(","));
         recordImportLog(loginUser, "staff", importMode, rows.size(), upsert, invalidStoreRows, minDate, maxDate, "ok", storeMeta);
+        publishImportBigDataEvent(loginUser, "staff", upsert);
         return result;
     }
 
@@ -1039,6 +1068,70 @@ public class RestaurantBiServiceImpl implements RestaurantBiService {
         }
         List<Long> ids = storeMapper.selectList(sw).stream().map(Store::getId).collect(Collectors.toList());
         return new AccessScope("hq_manager", ids, requestedRegion);
+    }
+
+    private String resolveAnalyticsEngine() {
+        if (!bigDataProperties.isEnabled() || !bigDataProperties.getClickhouse().isEnabled()
+                || !bigDataProperties.getClickhouse().isPreferRead()) {
+            return "mysql";
+        }
+        if (clickHouseMetricRepository == null) {
+            return "mysql";
+        }
+        try {
+            if (clickHouseMetricRepository.countStoreDailyRows() > 0) {
+                return "clickhouse";
+            }
+        } catch (Exception ignored) {
+            // 降级 MySQL
+        }
+        return "mysql";
+    }
+
+    private List<StoreDailyMetric> resolveStoreDailyMetrics(List<Long> storeIds, LocalDate start, LocalDate end,
+                                                            String analyticsEngine) {
+        if ("clickhouse".equals(analyticsEngine) && clickHouseMetricRepository != null) {
+            try {
+                List<StoreDailyMetric> fromCh = clickHouseMetricRepository.queryStoreDaily(storeIds, start, end);
+                if (fromCh != null && !fromCh.isEmpty()) {
+                    return fromCh;
+                }
+            } catch (Exception e) {
+                // 降级
+            }
+        }
+        return listStoreDailyMetrics(storeIds, start, end);
+    }
+
+    private Map<Long, BigDecimal> mergeRevenueFromRows(List<StoreDailyMetric> rows) {
+        Map<Long, BigDecimal> map = new LinkedHashMap<>();
+        for (StoreDailyMetric row : rows) {
+            if (row == null || row.getStoreId() == null) {
+                continue;
+            }
+            BigDecimal rev = nullSafeBigDecimal(row.getRevenue());
+            map.put(row.getStoreId(), map.getOrDefault(row.getStoreId(), BigDecimal.ZERO).add(rev));
+        }
+        return map;
+    }
+
+    private Map<String, Object> buildBigDataOverviewMeta(String analyticsEngine) {
+        Map<String, Object> meta = new LinkedHashMap<>();
+        meta.put("enabled", bigDataProperties.isEnabled());
+        meta.put("analyticsEngine", analyticsEngine);
+        meta.put("stack", bigDataStackProbeService.probe());
+        if (metricSyncService.getLastSyncAt() != null) {
+            meta.put("lastMetricSyncAt", metricSyncService.getLastSyncAt().toString());
+        }
+        return meta;
+    }
+
+    private void publishImportBigDataEvent(User loginUser, String importType, int upsert) {
+        if (!bigDataProperties.isEnabled()) {
+            return;
+        }
+        String summary = "importType=" + importType + ",upsert=" + upsert;
+        bigDataEventPublisher.publishImportCompleted(importType, loginUser.getId(), "ok", summary);
     }
 
     private List<StoreDailyMetric> listStoreDailyMetrics(List<Long> storeIds, LocalDate start, LocalDate end) {

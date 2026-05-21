@@ -2,7 +2,7 @@ import { history } from '@umijs/max';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
-import { Button, ConfigProvider, DatePicker, Segmented, Select, Skeleton, Space, Spin, message } from 'antd';
+import { Button, ConfigProvider, DatePicker, Segmented, Select, Skeleton, Space, Spin, Tag, message } from 'antd';
 import type { ThemeConfig } from 'antd/es/config-provider/context';
 import dayjs from 'dayjs';
 import { getChartByIdUsingGET, listMyChartByPageUsingPOST } from '@/services/yubi/chartController';
@@ -2118,7 +2118,17 @@ const BIOperationScreen: React.FC = () => {
             </Space>
           </ConfigProvider>
         </div>
-        <div className="biOpHeaderRight">运行状态：量贩零食经营监控中</div>
+        <div className="biOpHeaderRight">
+          运行状态：量贩零食经营监控中
+          {(hqData as any)?.bigData?.enabled ? (
+            <Tag
+              color={(hqData as any)?.bigData?.analyticsEngine === 'clickhouse' ? 'cyan' : 'default'}
+              style={{ marginLeft: 8 }}
+            >
+              分析引擎：{(hqData as any)?.bigData?.analyticsEngine === 'clickhouse' ? 'ClickHouse OLAP' : 'MySQL'}
+            </Tag>
+          ) : null}
+        </div>
       </div>
       <div className="biOpTopStats">
         {kpiCards.map((k) => (

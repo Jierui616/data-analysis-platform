@@ -29,9 +29,12 @@ import com.yupi.springbootinit.model.dto.lineage.LineageRecordRequest;
 import com.yupi.springbootinit.model.entity.Chart;
 import com.yupi.springbootinit.model.entity.User;
 import com.yupi.springbootinit.model.vo.BiResponse;
+import com.yupi.springbootinit.config.bigdata.BigDataProperties;
 import com.yupi.springbootinit.service.ChartService;
 import com.yupi.springbootinit.service.LineageService;
 import com.yupi.springbootinit.service.UserService;
+import com.yupi.springbootinit.service.bigdata.BigDataEventPublisher;
+import com.yupi.springbootinit.service.storage.ChartDataStorageService;
 import com.yupi.springbootinit.utils.BiAiResultParser;
 import com.yupi.springbootinit.utils.BiPromptUtils;
 import com.yupi.springbootinit.utils.ExcelUtils;
@@ -92,6 +95,15 @@ public class ChartController {
 
     @Resource
     private ChartActionMapper chartActionMapper;
+
+    @Resource
+    private ChartDataStorageService chartDataStorageService;
+
+    @Resource
+    private BigDataEventPublisher bigDataEventPublisher;
+
+    @Resource
+    private BigDataProperties bigDataProperties;
 
 
     // region 增删改查
@@ -668,6 +680,7 @@ public class ChartController {
         chart.setUserId(loginUser.getId());
         boolean saveResult = chartService.save(chart);
         ThrowUtils.throwIf(!saveResult, ErrorCode.SYSTEM_ERROR, "图表保存失败");
+        applyChartDataExternalStorage(chart);
         recordLineage(traceId, chart.getId(), LineageConstant.EVENT_METRIC_COMPUTED, goal, chartType,
                 "goal_parse_v1", "succeed", loginUser.getId());
 
@@ -713,6 +726,7 @@ public class ChartController {
             recordLineage(traceId, chart.getId(), LineageConstant.EVENT_AI_INTERPRETED, userInput, genResult,
                     "chart_ai_prompt_v1", "succeed", loginUser.getId());
             recordAiExplain(traceId, chart.getId(), "chart_ai_prompt_v1", "dashscope_or_yuapi", userInput, genResult);
+            publishChartGenBigDataEvent(chart.getId(), traceId, "succeed", loginUser.getId());
         }, threadPoolExecutor);
 
         BiResponse biResponse = new BiResponse();
@@ -789,11 +803,9 @@ public class ChartController {
         chart.setUserId(loginUser.getId());
         boolean saveResult = chartService.save(chart);
         ThrowUtils.throwIf(!saveResult, ErrorCode.SYSTEM_ERROR, "图表保存失败");
+        applyChartDataExternalStorage(chart);
         recordLineage(traceId, chart.getId(), LineageConstant.EVENT_METRIC_COMPUTED, goal, chartType,
                 "goal_parse_v1", "succeed", loginUser.getId());
-        Map<String, Object> mqMeta = new LinkedHashMap<>();
-        mqMeta.put("traceId", traceId);
-        mqMeta.put("chartId", chart.getId());
         long newChartId = chart.getId();
         biMessageProducer.sendMessage(newChartId + "|" + traceId);
         BiResponse biResponse = new BiResponse();
@@ -1116,5 +1128,23 @@ public class ChartController {
         lineageService.recordExplain(req);
     }
 
+    private void applyChartDataExternalStorage(Chart chart) {
+        if (chart == null || chart.getId() == null) {
+            return;
+        }
+        String csv = chart.getChartData();
+        if (StringUtils.isBlank(csv)) {
+            return;
+        }
+        if (chartDataStorageService.tryExternalizeChartData(chart, csv)) {
+            chartService.updateById(chart);
+        }
+    }
 
+    private void publishChartGenBigDataEvent(Long chartId, String traceId, String status, Long operatorId) {
+        if (!bigDataProperties.isEnabled()) {
+            return;
+        }
+        bigDataEventPublisher.publishChartGenCompleted(chartId, traceId, status, operatorId);
+    }
 }

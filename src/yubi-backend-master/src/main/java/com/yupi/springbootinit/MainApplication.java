@@ -1,5 +1,6 @@
 package com.yupi.springbootinit;
 
+import com.yupi.springbootinit.config.bigdata.BigDataProperties;
 import com.yupi.springbootinit.config.storage.StorageProperties;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
@@ -15,7 +16,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  */
 // todo 如需开启 Redis，须移除 exclude 中的内容
 @SpringBootApplication(exclude = {RedisAutoConfiguration.class})
-@EnableConfigurationProperties(StorageProperties.class)
+@EnableConfigurationProperties({StorageProperties.class, BigDataProperties.class})
 @MapperScan("com.yupi.springbootinit.mapper")
 @EnableScheduling
 @EnableAspectJAutoProxy(proxyTargetClass = true, exposeProxy = true)

@@ -9,8 +9,11 @@ import com.yupi.springbootinit.manager.AiManager;
 import com.yupi.springbootinit.model.dto.lineage.ExplainRecordRequest;
 import com.yupi.springbootinit.model.dto.lineage.LineageRecordRequest;
 import com.yupi.springbootinit.model.entity.Chart;
+import com.yupi.springbootinit.config.bigdata.BigDataProperties;
 import com.yupi.springbootinit.service.ChartService;
 import com.yupi.springbootinit.service.LineageService;
+import com.yupi.springbootinit.service.bigdata.BigDataEventPublisher;
+import com.yupi.springbootinit.service.storage.ChartDataResolverService;
 import com.yupi.springbootinit.utils.BiAiResultParser;
 import com.yupi.springbootinit.utils.BiPromptUtils;
 import com.yupi.springbootinit.utils.LineageRecordMetaHelper;
@@ -44,6 +47,15 @@ public class BiMessageConsumer {
 
     @Resource
     private LineageService lineageService;
+
+    @Resource
+    private ChartDataResolverService chartDataResolverService;
+
+    @Resource
+    private BigDataEventPublisher bigDataEventPublisher;
+
+    @Resource
+    private BigDataProperties bigDataProperties;
 
     // 指定程序监听的消息队列和确认机制
     @SneakyThrows
@@ -114,6 +126,7 @@ public class BiMessageConsumer {
         recordLineage(traceId, chartId, LineageConstant.EVENT_AI_INTERPRETED, userInput, genResult,
                 "chart_ai_prompt_v1", "succeed", chart.getUserId());
         recordAiExplain(traceId, chartId, "chart_ai_prompt_v1", "dashscope_or_yuapi", userInput, genResult);
+        publishChartGenBigDataEvent(chartId, traceId, "succeed", chart.getUserId());
         // 消息确认
         channel.basicAck(deliveryTag, false);
     }
@@ -124,8 +137,15 @@ public class BiMessageConsumer {
      * @return
      */
     private String buildUserInput(Chart chart) {
-        return BiPromptUtils.buildChartAiUserMessage(
-                chart.getGoal(), chart.getChartType(), chart.getChartData());
+        String csv = chartDataResolverService.resolveCsv(chart);
+        return BiPromptUtils.buildChartAiUserMessage(chart.getGoal(), chart.getChartType(), csv);
+    }
+
+    private void publishChartGenBigDataEvent(Long chartId, String traceId, String status, Long operatorId) {
+        if (!bigDataProperties.isEnabled()) {
+            return;
+        }
+        bigDataEventPublisher.publishChartGenCompleted(chartId, traceId, status, operatorId);
     }
 
     private void handleChartUpdateError(long chartId, String execMessage) {

@@ -36,6 +36,7 @@
 ## 技术栈速览
 
 - **后端**：Spring Boot 2.7、MyBatis-Plus、Spring Session（可选 Redis）、阿里云百炼（DashScope）等
+- **大数据（可选）**：ClickHouse（OLAP）、Kafka（事件流）、MinIO（对象存储）；见 [deploy.md](deploy.md) 第三节与 `docker-compose.bigdata.yml`
 - **前端**：React 18、Ant Design 5、Umi Max 4、ECharts
 
 ## 许可证与声明

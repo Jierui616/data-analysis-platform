@@ -102,6 +102,25 @@ cos:
     secretKey: xxx
     region: xxx
     bucket: xxx
+# 大数据栈（ClickHouse + Kafka + MinIO）。默认关闭；本地联调见 application-bigdata-local.yml.example
+bigdata:
+  enabled: false
+  clickhouse:
+    enabled: false
+    prefer-read: true
+    url: jdbc:ch://127.0.0.1:8123/yubi_analytics
+    username: default
+    password: ""
+  kafka:
+    enabled: false
+    bootstrap-servers: localhost:9092
+    topics:
+      chart-gen-completed: yubi.chart.gen.completed
+      import-completed: yubi.import.completed
+  sync:
+    scheduled-enabled: false
+    cron: "0 0 2 * * ?"
+
 # 图表原始 CSV 外置到对象存储（第一期）。默认关闭，行为与旧版一致。
 # 开启前请在 MySQL 执行：src/yubi-backend-master/sql/chart_data_ref_alter.sql
 # 本地 MinIO 见 docker-compose.bigdata.yml（API 端口 9100）；生产可设 provider: cos 使用上方 cos.client。
