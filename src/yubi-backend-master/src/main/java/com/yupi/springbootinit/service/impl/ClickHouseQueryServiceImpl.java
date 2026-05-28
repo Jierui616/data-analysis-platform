@@ -3,14 +3,12 @@ package com.yupi.springbootinit.service.impl;
 import com.yupi.springbootinit.service.ClickHouseQueryService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.sql.*;
 import java.util.*;
 
 @Service
-@ConditionalOnProperty(name = "bigdata.enabled", havingValue = "true")
 @Slf4j
 public class ClickHouseQueryServiceImpl implements ClickHouseQueryService {
 
