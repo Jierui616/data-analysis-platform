@@ -45,10 +45,12 @@ import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -1250,6 +1252,101 @@ public class LineageServiceImpl implements LineageService {
             return "";
         }
         return defaultIfBlank(row.get(idx), "");
+    }
+
+    @Override
+    public List<String> getDownstreamNodes(String nodeKey) {
+        if (StringUtils.isBlank(nodeKey)) {
+            return Collections.emptyList();
+        }
+        Set<String> visited = new HashSet<>();
+        List<String> result = new ArrayList<>();
+        Deque<String> queue = new ArrayDeque<>();
+        String startKey = nodeKey.trim().toLowerCase();
+        queue.add(startKey);
+        while (!queue.isEmpty()) {
+            String current = queue.poll();
+            if (!visited.add(current)) {
+                continue;
+            }
+            if (!current.equals(startKey)) {
+                result.add(current);
+            }
+            QueryWrapper<LineageEdge> qw = new QueryWrapper<>();
+            qw.eq("from_node_key", current);
+            qw.eq("is_delete", 0);
+            List<LineageEdge> edges = lineageEdgeMapper.selectList(qw);
+            if (edges != null) {
+                for (LineageEdge e : edges) {
+                    if (StringUtils.isNotBlank(e.getToNodeKey())) {
+                        queue.add(e.getToNodeKey().trim().toLowerCase());
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public List<String> getUpstreamNodes(String nodeKey) {
+        if (StringUtils.isBlank(nodeKey)) {
+            return Collections.emptyList();
+        }
+        Set<String> visited = new HashSet<>();
+        List<String> result = new ArrayList<>();
+        Deque<String> queue = new ArrayDeque<>();
+        String startKey = nodeKey.trim().toLowerCase();
+        queue.add(startKey);
+        while (!queue.isEmpty()) {
+            String current = queue.poll();
+            if (!visited.add(current)) {
+                continue;
+            }
+            if (!current.equals(startKey)) {
+                result.add(current);
+            }
+            QueryWrapper<LineageEdge> qw = new QueryWrapper<>();
+            qw.eq("to_node_key", current);
+            qw.eq("is_delete", 0);
+            List<LineageEdge> edges = lineageEdgeMapper.selectList(qw);
+            if (edges != null) {
+                for (LineageEdge e : edges) {
+                    if (StringUtils.isNotBlank(e.getFromNodeKey())) {
+                        queue.add(e.getFromNodeKey().trim().toLowerCase());
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public boolean isReachable(String fromNode, String toNode) {
+        if (StringUtils.isBlank(fromNode) || StringUtils.isBlank(toNode)) {
+            return false;
+        }
+        List<String> downstream = getDownstreamNodes(fromNode);
+        return downstream.contains(toNode.trim().toLowerCase());
+    }
+
+    @Override
+    public List<String> getLineagePath(String leafNodeKey) {
+        List<String> path = new ArrayList<>();
+        String current = leafNodeKey;
+        int maxDepth = 20;
+        while (current != null && maxDepth-- > 0) {
+            path.add(0, current.trim().toLowerCase());
+            QueryWrapper<LineageEdge> qw = new QueryWrapper<>();
+            qw.eq("to_node_key", current.trim().toLowerCase());
+            qw.eq("is_delete", 0);
+            qw.last("limit 1");
+            List<LineageEdge> edges = lineageEdgeMapper.selectList(qw);
+            if (edges == null || edges.isEmpty()) {
+                break;
+            }
+            current = edges.get(0).getFromNodeKey();
+        }
+        return path;
     }
 
     private static class ChartBusinessScope {

@@ -20,10 +20,12 @@ export default [
       { path: '/ai/realtime', name: '实时生成', component: './AddChart' },
       { path: '/ai/async', name: '异步生成', component: './AddChartAsync' },
       { path: '/ai/chat', name: '深度对话', icon: 'message', component: './DeepChat' },
+      { path: '/ai/auto-eda', name: '自主探索', icon: 'compass', component: './AutoEDA' },
     ],
   },
 
   { path: '/chart_result/:id', hideInMenu: true, component: './ChartResult' },
+  { path: '/insight-report/:sessionId', name: '分析报告', icon: 'fileText', component: './InsightReport', hideInMenu: true },
 
   {
     path: '/biz',

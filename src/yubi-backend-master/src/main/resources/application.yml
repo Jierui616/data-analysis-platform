@@ -168,3 +168,17 @@ bicenter:
       # 指定模型失败时，是否回退默认模型
       fallback-to-default: false
       session-ttl-seconds: 2592000
+
+# AutoEDA 探索代理配置
+autoeda:
+  table-name: store_daily_metric
+  ig:
+    weight-coverage: 0.30
+    weight-surprise: 0.35
+    weight-lineage-depth: 0.20
+    weight-cost: 0.15
+    cost-max-rows: 5000000
+  hypothesis:
+    accept-threshold: 0.75
+    reject-threshold: 0.25
+    max-stale-rounds: 3
