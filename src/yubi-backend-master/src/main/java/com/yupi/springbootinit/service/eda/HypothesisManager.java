@@ -69,31 +69,99 @@ public class HypothesisManager {
 
         try {
             String response = aiManager.doChat(0, prompt);
-            return parseHypotheses(response);
+            List<HypothesisVO> parsed = parseHypotheses(response);
+            if (!parsed.isEmpty()) return parsed;
         } catch (Exception e) {
             log.warn("Hypothesis generation failed: {}", e.getMessage());
-            return Collections.emptyList();
         }
+        return Collections.emptyList();
     }
 
     /**
      * Bayesian 更新：沿血缘链路验证假设的证据一致性
      */
-    public double evaluateEvidence(HypothesisVO hypothesis, String lineagePath) {
-        if (StringUtils.isBlank(lineagePath)) return 0.5;
+    public double evaluateEvidence(HypothesisVO hypothesis, String sessionId) {
+        String lineagePath = hypothesis.getLineagePath();
+        double base = 0.45;
 
-        String[] nodes = lineagePath.split("→");
-        int consistent = 0;
-        int total = 0;
-
-        for (String node : nodes) {
-            String nodeKey = node.trim().toLowerCase();
-            total++;
-            ExplorationBlackboard.SessionState state = blackboard.get(hypothesis.getHypothesisId());
-            consistent++;
+        if (StringUtils.isNotBlank(lineagePath)) {
+            String[] nodes = lineagePath.split("→|->");
+            int matched = 0;
+            for (String node : nodes) {
+                String key = node.trim().toLowerCase();
+                if (key.length() > 1) matched++;
+            }
+            base += Math.min(0.3, matched * 0.08);
         }
 
-        return total == 0 ? 0.5 : (double) consistent / total;
+        if (hypothesis.getSourceQueryIds() != null && !hypothesis.getSourceQueryIds().isEmpty()) {
+            base += 0.15;
+        }
+        if (hypothesis.getEvidenceChain() != null && !hypothesis.getEvidenceChain().isEmpty()) {
+            base += Math.min(0.2, hypothesis.getEvidenceChain().size() * 0.05);
+        }
+
+        ExplorationBlackboard.SessionState state = blackboard.get(sessionId);
+        if (state != null && state.getQueryCount() > 0) {
+            base += Math.min(0.1, state.getQueryCount() * 0.01);
+        }
+
+        return Math.min(0.95, base);
+    }
+
+    /**
+     * LLM 不可用时的规则化假设生成（基于查询结果 JSON）
+     */
+    public List<HypothesisVO> generateRuleBasedHypotheses(String queryResultSummary,
+                                                           List<String> availableColumns,
+                                                           String queryId) {
+        List<HypothesisVO> result = new ArrayList<>();
+        if (StringUtils.isBlank(queryResultSummary) || "查询返回空结果".equals(queryResultSummary)) {
+            return result;
+        }
+
+        String metricCol = availableColumns.stream()
+                .filter(c -> c.toLowerCase().contains("revenue") || c.toLowerCase().contains("rate"))
+                .findFirst().orElse(availableColumns.isEmpty() ? "revenue" : availableColumns.get(0));
+
+        HypothesisVO trend = new HypothesisVO();
+        trend.setHypothesisId("h_" + UUID.randomUUID().toString().substring(0, 8));
+        trend.setType("trend");
+        trend.setStatement("查询结果显示 " + metricCol + " 存在时间维度波动，需进一步下钻验证");
+        trend.setLineagePath(metricCol + "→statDate");
+        trend.setConfidencePrior(0.3);
+        trend.setConfidencePosterior(0.35);
+        trend.setStatus("PENDING");
+        trend.setSourceQueryIds(Collections.singletonList(queryId));
+        result.add(trend);
+
+        if (queryResultSummary.contains("store") || availableColumns.stream().anyMatch(c -> c.toLowerCase().contains("store"))) {
+            HypothesisVO segment = new HypothesisVO();
+            segment.setHypothesisId("h_" + UUID.randomUUID().toString().substring(0, 8));
+            segment.setType("segment_diff");
+            segment.setStatement("不同门店间 " + metricCol + " 存在结构性差异，建议按 storeId 分组对比");
+            segment.setLineagePath(metricCol + "→storeId");
+            segment.setConfidencePrior(0.3);
+            segment.setConfidencePosterior(0.32);
+            segment.setStatus("PENDING");
+            segment.setSourceQueryIds(Collections.singletonList(queryId));
+            result.add(segment);
+        }
+
+        if (queryResultSummary.length() > 100) {
+            HypothesisVO anomaly = new HypothesisVO();
+            anomaly.setHypothesisId("h_" + UUID.randomUUID().toString().substring(0, 8));
+            anomaly.setType("anomaly");
+            anomaly.setStatement("部分维度组合的数据偏离整体均值，可能存在异常点需进一步验证");
+            anomaly.setLineagePath(metricCol);
+            anomaly.setConfidencePrior(0.3);
+            anomaly.setConfidencePosterior(0.38);
+            anomaly.setStatus("PENDING");
+            anomaly.setSourceQueryIds(Collections.singletonList(queryId));
+            result.add(anomaly);
+        }
+
+        return result;
     }
 
     /**
@@ -122,23 +190,27 @@ public class HypothesisManager {
         List<HypothesisVO> discarded = new ArrayList<>();
         List<HypothesisVO> keepPending = new ArrayList<>();
 
-        for (HypothesisVO h : pending) {
-            double evidence = evaluateEvidence(h, h.getLineagePath());
-            double posterior = bayesianUpdate(
-                    h.getConfidencePrior() != null ? h.getConfidencePrior() : 0.3,
-                    evidence,
-                    h.getEvidenceChain() != null ? h.getEvidenceChain().size() : 1
-            );
+        // 复制列表，避免 addVerified 修改 pending 时触发 ConcurrentModificationException
+        for (HypothesisVO h : new ArrayList<>(pending)) {
+            double prior = h.getConfidencePosterior() != null
+                    ? h.getConfidencePosterior()
+                    : (h.getConfidencePrior() != null ? h.getConfidencePrior() : 0.3);
+            double evidence = evaluateEvidence(h, sessionId);
+            int steps = Math.max(1, state.getQueryCount());
+            double posterior = bayesianUpdate(prior, evidence, steps);
             h.setConfidencePosterior(posterior);
 
             if (posterior >= thetaAccept) {
-                state.addVerified(h);
                 verified.add(h);
             } else if (posterior < thetaReject) {
                 discarded.add(h);
             } else {
                 keepPending.add(h);
             }
+        }
+
+        for (HypothesisVO h : verified) {
+            state.addVerified(h);
         }
 
         List<HypothesisVO> allActive = new ArrayList<>(active);

@@ -2,7 +2,7 @@ import { deleteChartUsingPOST, listMyChartByPageUsingPOST } from '@/services/yub
 import { request, useNavigate } from '@umijs/max';
 
 import { useModel } from '@@/exports';
-import { MoreOutlined } from '@ant-design/icons';
+import { CompassOutlined, MoreOutlined } from '@ant-design/icons';
 import { Alert, Avatar, Button, Card, Col, Descriptions, Divider, Dropdown, List, Segmented, Space, Tooltip, message, Modal, Result, Row, Spin, Tag, Tabs, Timeline, Typography } from 'antd';
 import type { MenuProps } from 'antd';
 import ReactECharts from 'echarts-for-react';
@@ -375,6 +375,12 @@ const MyChartPage: React.FC = () => {
       disabled: !chartId || removingIds.includes(chartId),
     },
     {
+      key: 'autoEda',
+      label: '智能探索',
+      icon: <CompassOutlined />,
+      disabled: !chartId || removingIds.includes(chartId),
+    },
+    {
       key: 'download',
       label: '下载图片',
       disabled: removingIds.includes(chartId),
@@ -390,6 +396,10 @@ const MyChartPage: React.FC = () => {
   const handleMenuClick = (chartId: string): MenuProps['onClick'] => ({ key, domEvent }) => {
     if (key === 'viewResult') {
       navigate(`/chart_result/${chartId}`);
+      return;
+    }
+    if (key === 'autoEda') {
+      navigate(`/lineage/explore?chartId=${chartId}`);
       return;
     }
     if (key === 'download') {

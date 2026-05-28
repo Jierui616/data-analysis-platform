@@ -183,7 +183,12 @@ cd "<项目根>\src\yubi-backend-master"
 Get-Content .\sql\create_table.sql | mysql -u root -p yubi
 Get-Content .\sql\restaurant_schema.sql | mysql -u root -p yubi
 Get-Content .\sql\risk_portrait_schema.sql | mysql -u root -p yubi
+Get-Content .\sql\auto_eda_schema.sql -Encoding UTF8 | mysql -u root -p yubi
 ```
+
+> PowerShell 管道默认编码可能导致中文 COMMENT 乱码并报 1064；若失败，请用：`mysql -u root -p yubi --default-character-set=utf8mb4 -e "source D:/你的路径/sql/auto_eda_schema.sql"`（路径用正斜杠）。
+
+> **InfoGain 自主探索** 依赖 `auto_eda_session` / `auto_eda_hypothesis` / `auto_eda_query_log` 三张表，未执行 `auto_eda_schema.sql` 时点击「开始自主探索」会报 SQL 错误。
 
 若使用量贩零食大屏等扩展标签，再执行：
 

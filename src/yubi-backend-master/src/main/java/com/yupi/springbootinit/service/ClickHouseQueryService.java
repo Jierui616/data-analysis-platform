@@ -6,6 +6,11 @@ import java.util.Map;
 public interface ClickHouseQueryService {
 
     /**
+     * 发现指定表的所有列名（通过 DESCRIBE TABLE）
+     */
+    List<String> discoverColumns(String tableName);
+
+    /**
      * 执行查询并返回结果行列表
      */
     List<Map<String, Object>> executeQuery(String sql);

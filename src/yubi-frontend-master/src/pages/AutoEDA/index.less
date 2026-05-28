@@ -1,4 +1,346 @@
-// AutoEDA/index.less
-.ant-statistic-content {
-  font-size: 16px;
+.auto-eda-page-container {
+  .ant-page-header-heading-sub-title {
+    max-width: 100%;
+  }
+}
+
+.auto-eda-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.auto-eda-launch-grid {
+  align-items: stretch;
+}
+
+// 统一面板
+.auto-eda-panel {
+  height: 100%;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 4px 12px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+
+  .ant-pro-card-body {
+    padding: 20px 24px !important;
+  }
+}
+
+.config-panel {
+  background: #fff;
+}
+
+.preview-panel {
+  background: linear-gradient(160deg, #f8faff 0%, #ffffff 55%, #fafafa 100%);
+}
+
+.panel-head {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.panel-head-icon {
+  font-size: 28px;
+  color: #1677ff;
+  padding: 10px;
+  background: #e6f4ff;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.panel-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #141414;
+  line-height: 1.3;
+}
+
+.panel-desc {
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.45);
+  margin-top: 4px;
+}
+
+.panel-divider {
+  margin: 16px 0 !important;
+}
+
+.config-form {
+  .ant-form-item-label > label {
+    font-weight: 500;
+  }
+}
+
+.budget-control {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  .ant-slider {
+    flex: 1;
+    margin: 8px 4px 20px;
+  }
+}
+
+.budget-input {
+  width: 72px !important;
+  flex-shrink: 0;
+}
+
+.start-btn {
+  margin-top: 8px;
+  height: 44px;
+  font-weight: 500;
+  border-radius: 8px;
+}
+
+// 右侧预览
+.preview-hero {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.preview-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1677ff 0%, #69b1ff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  .anticon {
+    font-size: 24px;
+    color: #fff;
+  }
+}
+
+.preview-title-block {
+  flex: 1;
+  min-width: 0;
+}
+
+.preview-title {
+  margin: 0 0 8px !important;
+  word-break: break-word;
+}
+
+.preview-goal {
+  margin: 16px 0;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+}
+
+.preview-goal-label {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.preview-goal-text {
+  margin-bottom: 0 !important;
+  color: rgba(0, 0, 0, 0.75) !important;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.preview-meta {
+  .ant-descriptions-item-label {
+    width: 72px;
+    color: rgba(0, 0, 0, 0.45);
+  }
+
+  .ant-descriptions-item-content {
+    min-width: 0;
+  }
+}
+
+.chart-id-row {
+  max-width: 100%;
+}
+
+.chart-id-text {
+  font-size: 12px;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 16px;
+  text-align: center;
+
+  .anticon {
+    font-size: 40px;
+    color: #d9d9d9;
+  }
+}
+
+.how-it-works {
+  .how-label {
+    font-size: 12px;
+    display: block;
+    margin-bottom: 10px;
+  }
+}
+
+.how-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.how-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.65);
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 6px;
+
+  .anticon {
+    color: #1677ff;
+    font-size: 15px;
+  }
+}
+
+// 探索进度
+.progress-panel {
+  .progress-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .progress-steps {
+    margin-bottom: 20px;
+  }
+
+  .progress-bar {
+    margin-bottom: 20px;
+  }
+}
+
+.progress-stats {
+  margin-top: 4px;
+}
+
+.stat-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  height: 100%;
+
+  > .anticon {
+    font-size: 20px;
+    color: #1677ff;
+    flex-shrink: 0;
+  }
+
+  &--success > .anticon {
+    color: #52c41a;
+  }
+
+  .stat-value {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.2;
+    color: #141414;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.45);
+    margin-top: 2px;
+  }
+}
+
+.progress-alert {
+  margin-top: 16px;
+}
+
+// 假设列表
+.hypothesis-list {
+  .hypothesis-item {
+    padding: 0 0 12px;
+    border: none !important;
+  }
+}
+
+.hypothesis-card {
+  width: 100%;
+  padding: 14px 16px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    border-color: #d6e4ff;
+    box-shadow: 0 2px 8px rgba(22, 119, 255, 0.08);
+  }
+}
+
+.hypothesis-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.hypothesis-statement {
+  display: block;
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+
+.hypothesis-lineage {
+  display: block;
+  font-size: 12px;
+}
+
+.suggestions-wrap {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (max-width: 991px) {
+  .auto-eda-panel .ant-pro-card-body {
+    padding: 16px !important;
+  }
+
+  .budget-control {
+    flex-direction: column;
+    align-items: stretch;
+
+    .budget-input {
+      width: 100% !important;
+    }
+  }
 }

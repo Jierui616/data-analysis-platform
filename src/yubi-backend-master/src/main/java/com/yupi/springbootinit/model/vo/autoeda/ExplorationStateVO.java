@@ -41,4 +41,7 @@ public class ExplorationStateVO {
     private Long startTime;
 
     private Long elapsedSeconds;
+
+    /** 失败时的错误摘要 */
+    private String errorMessage;
 }

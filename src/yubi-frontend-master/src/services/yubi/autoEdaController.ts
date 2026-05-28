@@ -26,6 +26,7 @@ export type ExplorationState = {
   suggestedNextDirections?: string[];
   startTime?: number;
   elapsedSeconds?: number;
+  errorMessage?: string;
 };
 
 export type HypothesisItem = {
@@ -95,7 +96,52 @@ export type AuditStep = {
   executionMs?: number;
 };
 
+export type AutoEdaChartOption = {
+  id?: number;
+  name?: string;
+  goal?: string;
+  chartType?: string;
+  status?: string;
+};
+
+export type ExplorationSessionItem = {
+  sessionId?: string;
+  chartId?: number;
+  chartName?: string;
+  status?: string;
+  totalQueries?: number;
+  startTime?: string;
+  endTime?: string;
+  createTime?: string;
+};
+
 // ---------- API Calls ----------
+
+/** GET /api/auto-eda/sessions — 探索历史（回看） */
+export async function listExplorationSessionsUsingGET(
+  params?: { limit?: number },
+  options?: { [key: string]: any },
+) {
+  return request<{ code?: number; data?: ExplorationSessionItem[]; message?: string }>(
+    '/api/auto-eda/sessions',
+    {
+      method: 'GET',
+      params: { limit: params?.limit ?? 50 },
+      ...(options || {}),
+    },
+  );
+}
+
+/** GET /api/auto-eda/charts — 从 MySQL chart 表加载当前用户图表 */
+export async function listExplorableChartsUsingGET(options?: { [key: string]: any }) {
+  return request<{ code?: number; data?: AutoEdaChartOption[]; message?: string }>(
+    '/api/auto-eda/charts',
+    {
+      method: 'GET',
+      ...(options || {}),
+    },
+  );
+}
 
 export async function startExplorationUsingPOST(
   body: StartExplorationParams,
@@ -175,6 +221,20 @@ export async function stopExplorationUsingPOST(
     `/api/auto-eda/stop/${sessionId}`,
     {
       method: 'POST',
+      ...(options || {}),
+    },
+  );
+}
+
+/** DELETE /api/auto-eda/sessions/{sessionId} — 删除探索记录 */
+export async function deleteExplorationSessionUsingDELETE(
+  sessionId: string,
+  options?: { [key: string]: any },
+) {
+  return request<{ code?: number; data?: boolean; message?: string }>(
+    `/api/auto-eda/sessions/${sessionId}`,
+    {
+      method: 'DELETE',
       ...(options || {}),
     },
   );

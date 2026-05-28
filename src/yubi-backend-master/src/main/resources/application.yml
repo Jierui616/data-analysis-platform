@@ -171,7 +171,7 @@ bicenter:
 
 # AutoEDA 探索代理配置
 autoeda:
-  table-name: store_daily_metric
+  table-name: yubi_analytics.store_daily_metric_ch
   ig:
     weight-coverage: 0.30
     weight-surprise: 0.35

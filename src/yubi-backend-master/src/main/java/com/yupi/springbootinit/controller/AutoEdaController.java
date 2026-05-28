@@ -7,6 +7,8 @@ import com.yupi.springbootinit.exception.BusinessException;
 import com.yupi.springbootinit.model.dto.autoeda.ContinueExplorationRequest;
 import com.yupi.springbootinit.model.dto.autoeda.StartExplorationRequest;
 import com.yupi.springbootinit.model.entity.User;
+import com.yupi.springbootinit.model.vo.autoeda.AutoEdaChartOptionVO;
+import com.yupi.springbootinit.model.vo.autoeda.AutoEdaSessionSummaryVO;
 import com.yupi.springbootinit.model.vo.autoeda.ExplorationStateVO;
 import com.yupi.springbootinit.model.vo.autoeda.HypothesisVO;
 import com.yupi.springbootinit.model.vo.autoeda.InsightReportVO;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -30,6 +33,27 @@ public class AutoEdaController {
 
     @Resource
     private UserService userService;
+
+    /**
+     * 获取当前用户可探索的图表列表（从 MySQL chart 表查询）
+     */
+    @GetMapping("/charts")
+    public BaseResponse<List<AutoEdaChartOptionVO>> listCharts(HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        return ResultUtils.success(autoEdaService.listExplorableCharts(loginUser.getId()));
+    }
+
+    /**
+     * 探索历史列表（回看入口）
+     */
+    @GetMapping("/sessions")
+    public BaseResponse<List<AutoEdaSessionSummaryVO>> listSessions(
+            @RequestParam(value = "limit", defaultValue = "50") int limit,
+            HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        int safeLimit = Math.min(Math.max(limit, 1), 100);
+        return ResultUtils.success(autoEdaService.listMySessions(loginUser.getId(), safeLimit));
+    }
 
     /**
      * 启动探索会话
@@ -94,5 +118,15 @@ public class AutoEdaController {
                                        HttpServletRequest request) {
         userService.getLoginUser(request);
         return ResultUtils.success(autoEdaService.stopExploration(sessionId));
+    }
+
+    /**
+     * 删除探索记录
+     */
+    @DeleteMapping("/sessions/{sessionId}")
+    public BaseResponse<Boolean> deleteSession(@PathVariable String sessionId,
+                                                HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        return ResultUtils.success(autoEdaService.deleteSession(sessionId, loginUser.getId()));
     }
 }

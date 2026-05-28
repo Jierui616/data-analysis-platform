@@ -13,9 +13,12 @@ import com.yupi.springbootinit.model.entity.AutoEdaHypothesis;
 import com.yupi.springbootinit.model.entity.AutoEdaQueryLog;
 import com.yupi.springbootinit.model.entity.AutoEdaSession;
 import com.yupi.springbootinit.model.entity.Chart;
+import com.yupi.springbootinit.model.vo.autoeda.AutoEdaChartOptionVO;
+import com.yupi.springbootinit.model.vo.autoeda.AutoEdaSessionSummaryVO;
 import com.yupi.springbootinit.model.vo.autoeda.ExplorationStateVO;
 import com.yupi.springbootinit.model.vo.autoeda.HypothesisVO;
 import com.yupi.springbootinit.model.vo.autoeda.InsightReportVO;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.yupi.springbootinit.service.*;
 import com.yupi.springbootinit.service.eda.*;
 import com.yupi.springbootinit.service.storage.ChartDataResolverService;
@@ -70,8 +73,56 @@ public class AutoEdaServiceImpl implements AutoEdaService {
 
     private final Gson gson = new Gson();
 
-    @Value("${autoeda.table-name:store_daily_metric}")
+    @Value("${autoeda.table-name:yubi_analytics.store_daily_metric_ch}")
     private String defaultTableName;
+
+    @Override
+    public List<AutoEdaChartOptionVO> listExplorableCharts(Long userId) {
+        QueryWrapper<Chart> wrapper = new QueryWrapper<>();
+        wrapper.eq("userId", userId);
+        wrapper.eq("isDelete", 0);
+        wrapper.orderByDesc("createTime");
+        Page<Chart> page = chartService.page(new Page<>(1, 50), wrapper);
+        List<AutoEdaChartOptionVO> options = new ArrayList<>();
+        for (Chart chart : page.getRecords()) {
+            AutoEdaChartOptionVO vo = new AutoEdaChartOptionVO();
+            vo.setId(chart.getId());
+            vo.setName(chart.getName());
+            vo.setGoal(chart.getGoal());
+            vo.setChartType(chart.getChartType());
+            vo.setStatus(chart.getStatus());
+            options.add(vo);
+        }
+        return options;
+    }
+
+    @Override
+    public List<AutoEdaSessionSummaryVO> listMySessions(Long userId, int limit) {
+        QueryWrapper<AutoEdaSession> wrapper = new QueryWrapper<>();
+        wrapper.eq("user_id", userId);
+        wrapper.eq("is_delete", 0);
+        wrapper.orderByDesc("create_time");
+        Page<AutoEdaSession> page = sessionMapper.selectPage(new Page<>(1, limit), wrapper);
+        List<AutoEdaSessionSummaryVO> list = new ArrayList<>();
+        for (AutoEdaSession s : page.getRecords()) {
+            AutoEdaSessionSummaryVO vo = new AutoEdaSessionSummaryVO();
+            vo.setSessionId(s.getSessionId());
+            vo.setChartId(s.getChartId());
+            vo.setStatus(s.getStatus());
+            vo.setTotalQueries(s.getTotalQueries());
+            vo.setStartTime(s.getStartTime());
+            vo.setEndTime(s.getEndTime());
+            vo.setCreateTime(s.getCreateTime());
+            if (s.getChartId() != null) {
+                Chart chart = chartService.getById(s.getChartId());
+                if (chart != null) {
+                    vo.setChartName(chart.getName());
+                }
+            }
+            list.add(vo);
+        }
+        return list;
+    }
 
     @Override
     public String startExploration(StartExplorationRequest request, Long userId) {
@@ -112,79 +163,111 @@ public class AutoEdaServiceImpl implements AutoEdaService {
         double epsilon = config.getConvergenceEpsilon() != null ? config.getConvergenceEpsilon() : 0.05;
         int convRounds = config.getConvergenceRounds() != null ? config.getConvergenceRounds() : 3;
 
-        // 获取血缘可及字段
-        List<String> targetMetrics = config.getTargetMetrics();
-        if (targetMetrics == null || targetMetrics.isEmpty()) {
-            targetMetrics = Arrays.asList("revenue", "profit", "gross_margin");
+        // 获取真实 ClickHouse 列名（不可用时使用已知 schema 降级）
+        List<String> availableColumns = clickHouseQueryService.discoverColumns(defaultTableName);
+        if (availableColumns.isEmpty()) {
+            availableColumns = getDefaultColumns();
+            log.warn("ClickHouse column discovery failed, using default columns for {}", defaultTableName);
         }
-        String rootMetric = targetMetrics.get(0);
-        List<String> downstreamNodes = lineageService.getDownstreamNodes(rootMetric);
-        List<String> availableColumns = new ArrayList<>(downstreamNodes);
-        availableColumns.add(0, rootMetric);
+        log.info("Discovered {} columns from table {}: {}", availableColumns.size(), defaultTableName, availableColumns);
 
+        // 使用 chart goal 作为探索意图上下文
+        String explorationIntent = StringUtils.isNotBlank(chart.getGoal()) ? chart.getGoal() : "通用数据探索";
+
+        int consecutiveErrors = 0;
         try {
             while (state.getQueryCount() < maxBudget) {
-                // Step 1: 生成候选查询池并选择 IG 最大的
-                Map<String, List<String>> dimensions = generateCandidateDimensions(state, rootMetric);
-                String sql = queryGenerator.generateSql(defaultTableName, availableColumns,
-                        "探索维度: " + dimensions, dimensions, rootMetric);
-
-                // Step 2: 执行查询
-                String queryId = "q_" + UUID.randomUUID().toString().substring(0, 8);
-                ClickHouseQueryService.QueryResult result = clickHouseQueryService.executeWithStats(sql);
-
-                // Step 3: 计算 IG
-                double ig = igCalculator.calculate(dimensions, state.getExploredRegions(),
-                        0, rootMetric, result.getScannedRows(), rootMetric);
-                state.setLastMaxIg(ig);
-
-                // Step 4: 记录查询日志
-                String resultSummary = summarizeResult(result.getRows(), 2000);
-                saveQueryLog(sessionId, queryId, sql, dimensions, ig, resultSummary,
-                        result.getRowCount(), (int) result.getExecutionMs(), (int) result.getScannedRows(), rootMetric);
-
-                // Step 5: 更新已探索区域
-                for (Map.Entry<String, List<String>> entry : dimensions.entrySet()) {
-                    for (String val : entry.getValue()) {
-                        state.markExplored(entry.getKey(), val);
+                try {
+                    // Step 1: 生成 SQL（优先模板，避免 LLM 生成非法 SQL）
+                    Map<String, List<String>> dimensions = generateCandidateDimensions(state, availableColumns);
+                    String sql = queryGenerator.generateTemplateSql(defaultTableName, dimensions, availableColumns);
+                    if (StringUtils.isBlank(sql)) {
+                        sql = queryGenerator.generateSql(defaultTableName, availableColumns,
+                                explorationIntent, dimensions, "探索维度: " + dimensions);
                     }
-                }
-                state.addTrace(queryId);
 
-                // Step 6: 生成 + 验证假设
-                List<HypothesisVO> newHypotheses = hypothesisManager.generateHypotheses(
-                        resultSummary, state.getPendingHypotheses(), availableColumns, rootMetric);
-                for (HypothesisVO h : newHypotheses) {
-                    state.addPending(h);
-                    saveHypothesis(sessionId, h);
-                }
+                    // Step 2: 执行查询
+                    String queryId = "q_" + UUID.randomUUID().toString().substring(0, 8);
+                    ClickHouseQueryService.QueryResult result = clickHouseQueryService.executeWithStats(sql);
 
-                // Step 7: Bayesian 分类循环
-                HypothesisManager.HypothesisCycleResult cycleResult = hypothesisManager.runCycle(
-                        state.getPendingHypotheses(), state.getActiveHypotheses(), sessionId);
-                for (HypothesisVO h : cycleResult.verified) {
-                    updateHypothesisStatus(sessionId, h.getHypothesisId(), "VERIFIED", h.getConfidencePosterior());
-                }
-                for (HypothesisVO h : cycleResult.discarded) {
-                    updateHypothesisStatus(sessionId, h.getHypothesisId(), "DISCARDED", h.getConfidencePosterior());
-                }
-                state.setActiveHypotheses(new ArrayList<>(cycleResult.topActive));
+                    // Step 3: 计算 IG
+                    String igMetric = pickMetricColumn(availableColumns);
+                    double surprise = estimateSurprise(result.getRows(), igMetric);
+                    double ig = igCalculator.calculate(dimensions, state.getExploredRegions(),
+                            surprise, igMetric, result.getScannedRows(), igMetric);
+                    state.setLastMaxIg(ig);
 
-                // Step 8: 检查收敛
-                if (state.checkConvergence(epsilon, convRounds)) {
-                    log.info("Exploration converged for session {}", sessionId);
-                    break;
+                    // Step 4: 记录查询日志
+                    String resultSummary = summarizeResult(result.getRows(), 2000);
+                    if (result.getRowCount() == 0) {
+                        resultSummary = "查询返回空结果（请确认 ClickHouse 已启动并已同步指标数据）";
+                    }
+                    saveQueryLog(sessionId, queryId, sql, dimensions, ig, resultSummary,
+                            result.getRowCount(), (int) result.getExecutionMs(), (int) result.getScannedRows(),
+                            defaultTableName);
+
+                    // Step 5: 更新已探索区域
+                    for (Map.Entry<String, List<String>> entry : dimensions.entrySet()) {
+                        for (String val : entry.getValue()) {
+                            state.markExplored(entry.getKey(), val);
+                        }
+                    }
+                    state.addTrace(queryId);
+
+                    // Step 6: 生成假设
+                    List<HypothesisVO> newHypotheses = hypothesisManager.generateHypotheses(
+                            resultSummary, state.getPendingHypotheses(), availableColumns, defaultTableName);
+                    if (newHypotheses.isEmpty()) {
+                        newHypotheses = hypothesisManager.generateRuleBasedHypotheses(
+                                resultSummary, availableColumns, queryId);
+                    }
+                    for (HypothesisVO h : newHypotheses) {
+                        if (h.getSourceQueryIds() == null || h.getSourceQueryIds().isEmpty()) {
+                            h.setSourceQueryIds(Collections.singletonList(queryId));
+                        }
+                        state.addPending(h);
+                        saveHypothesis(sessionId, h);
+                    }
+
+                    // Step 7: Bayesian 分类
+                    HypothesisManager.HypothesisCycleResult cycleResult = hypothesisManager.runCycle(
+                            state.getPendingHypotheses(), state.getActiveHypotheses(), sessionId);
+                    for (HypothesisVO h : cycleResult.verified) {
+                        updateHypothesisStatus(sessionId, h.getHypothesisId(), "VERIFIED", h.getConfidencePosterior());
+                    }
+                    for (HypothesisVO h : cycleResult.discarded) {
+                        updateHypothesisStatus(sessionId, h.getHypothesisId(), "DISCARDED", h.getConfidencePosterior());
+                    }
+                    state.getPendingHypotheses().clear();
+                    state.getPendingHypotheses().addAll(cycleResult.keepPending);
+                    state.setActiveHypotheses(new ArrayList<>(cycleResult.topActive));
+
+                    consecutiveErrors = 0;
+
+                    if (state.checkConvergence(epsilon, convRounds)) {
+                        log.info("Exploration converged for session {}", sessionId);
+                        break;
+                    }
+                } catch (Exception roundEx) {
+                    consecutiveErrors++;
+                    log.warn("Exploration round failed for session {} (round {}): {}",
+                            sessionId, state.getQueryCount() + 1, roundEx.getMessage(), roundEx);
+                    state.setLastError(roundEx.getMessage());
+                    if (consecutiveErrors >= 3) {
+                        throw roundEx;
+                    }
                 }
             }
 
-            // 探索完成：生成报告
             composeAndSaveReport(sessionId, chart);
             state.setStatus("COMPLETED");
+            state.setLastError(null);
             updateSessionStatus(sessionId, "COMPLETED", state.getQueryCount());
 
         } catch (Exception e) {
-            log.error("Exploration loop failed for session {}: {}", sessionId, e.getMessage());
+            log.error("Exploration loop failed for session {}: {}", sessionId, e.getMessage(), e);
             state.setStatus("FAILED");
+            state.setLastError(e.getMessage());
             updateSessionStatus(sessionId, "FAILED", state.getQueryCount());
         }
     }
@@ -200,6 +283,17 @@ public class AutoEdaServiceImpl implements AutoEdaService {
         vo.setPendingHypothesisCount(state.getPendingHypotheses().size());
         vo.setVerifiedHypothesisCount(state.getVerifiedHypotheses().size());
         vo.setQueriesExecuted(state.getQueryCount());
+
+        AutoEdaSession session = sessionMapper.selectOne(
+                new QueryWrapper<AutoEdaSession>().eq("session_id", sessionId));
+        if (session != null && StringUtils.isNotBlank(session.getConfigJson())) {
+            Map<?, ?> cfg = gson.fromJson(session.getConfigJson(), Map.class);
+            Object budget = cfg.get("maxQueryBudget");
+            if (budget instanceof Number) {
+                vo.setQueryBudget(((Number) budget).intValue());
+            }
+        }
+        if (vo.getQueryBudget() == null) vo.setQueryBudget(30);
         vo.setLastMaxIg(state.getLastMaxIg());
         vo.setConverged("COMPLETED".equals(state.getStatus()));
 
@@ -211,6 +305,7 @@ public class AutoEdaServiceImpl implements AutoEdaService {
         vo.setExploredRegions(explored);
         vo.setActiveHypotheses(new ArrayList<>(state.getActiveHypotheses()));
         vo.setSuggestedNextDirections(suggestNextDirections(state));
+        vo.setErrorMessage(state.getLastError());
         return vo;
     }
 
@@ -264,15 +359,103 @@ public class AutoEdaServiceImpl implements AutoEdaService {
         return false;
     }
 
+    @Override
+    public boolean deleteSession(String sessionId, Long userId) {
+        if (StringUtils.isBlank(sessionId)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "会话编号无效");
+        }
+        AutoEdaSession session = sessionMapper.selectOne(
+                new QueryWrapper<AutoEdaSession>()
+                        .eq("session_id", sessionId)
+                        .eq("user_id", userId)
+                        .eq("is_delete", 0));
+        if (session == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "探索记录不存在");
+        }
+
+        if ("RUNNING".equals(session.getStatus())) {
+            stopExploration(sessionId);
+        }
+
+        hypothesisMapper.delete(new QueryWrapper<AutoEdaHypothesis>().eq("session_id", sessionId));
+        queryLogMapper.delete(new QueryWrapper<AutoEdaQueryLog>().eq("session_id", sessionId));
+        sessionMapper.delete(new QueryWrapper<AutoEdaSession>().eq("session_id", sessionId));
+
+        blackboard.remove(sessionId);
+        return true;
+    }
+
     // ---------- Private Helpers ----------
 
-    private Map<String, List<String>> generateCandidateDimensions(ExplorationBlackboard.SessionState state, String rootMetric) {
+    private List<String> getDefaultColumns() {
+        return Arrays.asList(
+                "statDate", "storeId", "revenue", "grossMarginRate", "avgTicket",
+                "tableTurnover", "seatOccupancy", "takeawayRatio", "dineInRatio",
+                "prepTimeAvgMin", "cancelRate", "badReviewRate"
+        );
+    }
+
+    private String pickMetricColumn(List<String> availableColumns) {
+        for (String col : availableColumns) {
+            String lower = col.toLowerCase();
+            if (lower.contains("revenue") || lower.equals("grossmarginrate")) return col;
+        }
+        return availableColumns.isEmpty() ? "revenue" : availableColumns.get(0);
+    }
+
+    private double estimateSurprise(List<Map<String, Object>> rows, String metricCol) {
+        if (rows == null || rows.isEmpty()) return 0;
+        List<Double> values = new ArrayList<>();
+        for (Map<String, Object> row : rows) {
+            for (Map.Entry<String, Object> e : row.entrySet()) {
+                if (e.getKey() != null && e.getKey().toLowerCase().contains(metricCol.toLowerCase().replace("_", ""))) {
+                    if (e.getValue() instanceof Number) values.add(((Number) e.getValue()).doubleValue());
+                }
+            }
+            Object direct = row.get(metricCol);
+            if (direct instanceof Number) values.add(((Number) direct).doubleValue());
+            Object totalRev = row.get("total_revenue");
+            if (totalRev instanceof Number) values.add(((Number) totalRev).doubleValue());
+        }
+        if (values.size() < 2) return 0;
+        double mean = values.stream().mapToDouble(Double::doubleValue).average().orElse(0);
+        double variance = values.stream().mapToDouble(v -> Math.pow(v - mean, 2)).average().orElse(0);
+        double std = Math.sqrt(variance);
+        if (std < 1e-9) return 0;
+        double maxDev = values.stream().mapToDouble(v -> Math.abs(v - mean) / std).max().orElse(0);
+        return maxDev;
+    }
+
+    private Map<String, List<String>> generateCandidateDimensions(ExplorationBlackboard.SessionState state, List<String> availableColumns) {
         Map<String, List<String>> dims = new LinkedHashMap<>();
-        // 简化：从血缘下游节点中采样维度
-        List<String> downstream = lineageService.getDownstreamNodes(rootMetric);
-        if (!downstream.isEmpty()) {
-            String dim = downstream.get(state.getQueryCount() % downstream.size());
-            dims.put("category", Collections.singletonList(dim));
+        // 使用真实 ClickHouse 列名作为维度来源
+        List<String> metricColumns = new ArrayList<>();
+        List<String> dimColumns = new ArrayList<>();
+        for (String col : availableColumns) {
+            String lower = col.toLowerCase();
+            // 数值列作为指标
+            if (lower.contains("revenue") || lower.contains("rate") || lower.contains("avg")
+                    || lower.contains("count") || lower.contains("sum") || lower.contains("margin")
+                    || lower.contains("ticket") || lower.contains("turnover") || lower.contains("ratio")
+                    || lower.contains("occupancy") || lower.contains("cost") || lower.contains("price")) {
+                metricColumns.add(col);
+            }
+            // 维度类列
+            if (lower.contains("date") || lower.contains("store") || lower.contains("id")
+                    || lower.contains("name") || lower.contains("type") || lower.contains("category")) {
+                dimColumns.add(col);
+            }
+        }
+
+        // 至少选一个指标列
+        if (!metricColumns.isEmpty()) {
+            String metric = metricColumns.get(state.getQueryCount() % metricColumns.size());
+            dims.put("metric", Collections.singletonList(metric));
+        }
+        // 至少选一个维度列
+        if (!dimColumns.isEmpty()) {
+            String dim = dimColumns.get(state.getQueryCount() % dimColumns.size());
+            dims.put("dimension", Collections.singletonList(dim));
         }
         dims.put("time", Collections.singletonList("recent"));
         return dims;
@@ -307,7 +490,14 @@ public class AutoEdaServiceImpl implements AutoEdaService {
         entity.setSessionId(sessionId);
         entity.setHypothesisId(vo.getHypothesisId());
         entity.setType(vo.getType());
-        entity.setStatement(vo.getStatement());
+        String stmt = vo.getStatement();
+        if (stmt != null && stmt.length() > 1000) {
+            stmt = stmt.substring(0, 1000);
+        }
+        entity.setStatement(stmt);
+        if (StringUtils.isBlank(entity.getType())) {
+            entity.setType("trend");
+        }
         entity.setConfidencePrior(vo.getConfidencePrior() != null ? vo.getConfidencePrior() : 0.3);
         entity.setConfidencePosterior(vo.getConfidencePosterior() != null ? vo.getConfidencePosterior() : 0.3);
         entity.setStatus(vo.getStatus());
@@ -356,11 +546,11 @@ public class AutoEdaServiceImpl implements AutoEdaService {
     private List<String> suggestNextDirections(ExplorationBlackboard.SessionState state) {
         List<String> suggestions = new ArrayList<>();
         if (state.getPendingHypotheses().size() > 3) {
-            suggestions.add("还有 " + state.getPendingHypotheses().size() + " 个假设待验证，继续探索以确认或排除");
+            suggestions.add("还有 " + state.getPendingHypotheses().size() + " 条结论待核实，可继续分析以确认或排除");
         }
         if (state.getActiveHypotheses() != null && !state.getActiveHypotheses().isEmpty()) {
             HypothesisVO top = state.getActiveHypotheses().get(0);
-            suggestions.add("当前最优先假设: " + top.getStatement());
+            suggestions.add("当前重点关注: " + top.getStatement());
         }
         return suggestions;
     }

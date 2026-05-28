@@ -31,6 +31,22 @@ public class ClickHouseQueryServiceImpl implements ClickHouseQueryService {
     }
 
     @Override
+    public List<String> discoverColumns(String tableName) {
+        List<String> columns = new ArrayList<>();
+        String sql = "DESCRIBE TABLE " + tableName;
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                columns.add(rs.getString("name"));
+            }
+        } catch (SQLException e) {
+            log.error("Failed to discover columns for table {}: {}", tableName, e.getMessage());
+        }
+        return columns;
+    }
+
+    @Override
     public List<Map<String, Object>> executeQuery(String sql) {
         List<Map<String, Object>> result = new ArrayList<>();
         try (Connection conn = getConnection();

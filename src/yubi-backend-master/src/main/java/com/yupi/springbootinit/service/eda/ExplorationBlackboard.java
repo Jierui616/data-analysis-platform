@@ -57,6 +57,9 @@ public class ExplorationBlackboard {
         /** 状态 */
         private String status = "RUNNING";
 
+        /** 最近一次错误信息（FAILED 时展示） */
+        private String lastError;
+
         public void markExplored(String dimensionType, String dimensionValue) {
             exploredRegions.computeIfAbsent(dimensionType, k -> ConcurrentHashMap.newKeySet())
                     .add(dimensionValue);

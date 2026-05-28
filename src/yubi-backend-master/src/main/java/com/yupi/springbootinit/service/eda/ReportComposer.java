@@ -23,7 +23,8 @@ public class ReportComposer {
     private final Gson gson = new Gson();
 
     private static final String COMPOSE_PROMPT =
-        "你是一个资深数据分析师。请基于以下已验证的分析假设，生成结构化报告。\n"
+        "你是一个面向门店经营者的数据分析顾问，请用大白话（避免 IG、假设、后验、Executive Summary 等术语）写报告。\n"
+        + "请基于以下已验证的分析要点，生成结构化报告。\n"
         + "输出严格 JSON:\n"
         + "{\"executiveSummary\":[{\"title\":\"\",\"description\":\"\",\"confidence\":0.0,\"actionableAdvice\":\"\"}],\n"
         + " \"anomalies\":[{\"metricName\":\"\",\"anomalyDescription\":\"\",\"deviationSigma\":0.0,\"rootCause\":\"\",\"businessImpact\":\"\"}],\n"
@@ -61,7 +62,7 @@ public class ReportComposer {
                 .map(h -> String.format("[%s] %s", h.getType(), h.getStatement()))
                 .collect(Collectors.joining("\n"));
 
-        InsightReportVO report = buildReportWithLLM(verifiedSummary, pendingSummary);
+        InsightReportVO report = buildReportWithLLM(verifiedSummary, pendingSummary, sorted, pendingHypotheses);
 
         // 3. 填充元数据
         report.setSessionId(sessionId);
@@ -79,18 +80,22 @@ public class ReportComposer {
         return report;
     }
 
-    private InsightReportVO buildReportWithLLM(String verifiedSummary, String pendingSummary) {
+    private InsightReportVO buildReportWithLLM(String verifiedSummary, String pendingSummary,
+                                                List<HypothesisVO> verified, List<HypothesisVO> pending) {
         String prompt = String.format(COMPOSE_PROMPT,
                 StringUtils.defaultIfBlank(verifiedSummary, "无已验证假设"),
                 StringUtils.defaultIfBlank(pendingSummary, "无待确认线索"));
 
         try {
             String response = aiManager.doChat(0, prompt);
-            return parseReportJson(response);
+            InsightReportVO parsed = parseReportJson(response);
+            if (parsed.getExecutiveSummary() != null && !parsed.getExecutiveSummary().isEmpty()) {
+                return parsed;
+            }
         } catch (Exception e) {
             log.warn("Report LLM composition failed, using fallback: {}", e.getMessage());
-            return buildFallbackReport(verifiedSummary);
         }
+        return buildFallbackFromHypotheses(verified, pending);
     }
 
     private InsightReportVO buildFallbackReport(String verifiedSummary) {
@@ -104,6 +109,52 @@ public class ReportComposer {
         report.setAnomalies(Collections.emptyList());
         report.setDeepInsights(Collections.emptyList());
         report.setOpenLeads(Collections.emptyList());
+        return report;
+    }
+
+    private InsightReportVO buildFallbackFromHypotheses(List<HypothesisVO> verified,
+                                                         List<HypothesisVO> pending) {
+        InsightReportVO report = new InsightReportVO();
+        List<InsightReportVO.InsightItem> summary = new ArrayList<>();
+        List<InsightReportVO.AnomalyItem> anomalies = new ArrayList<>();
+        List<InsightReportVO.InsightItem> deep = new ArrayList<>();
+        List<InsightReportVO.OpenLeadItem> leads = new ArrayList<>();
+
+        for (HypothesisVO h : verified) {
+            InsightReportVO.InsightItem item = new InsightReportVO.InsightItem();
+            item.setTitle(h.getType() + " 发现");
+            item.setDescription(h.getStatement());
+            item.setConfidence(h.getConfidencePosterior());
+            item.setActionableAdvice("基于 " + (h.getLineagePath() != null ? h.getLineagePath() : "数据探索") + " 路径验证");
+            if ("anomaly".equals(h.getType())) {
+                InsightReportVO.AnomalyItem a = new InsightReportVO.AnomalyItem();
+                a.setMetricName(h.getLineagePath());
+                a.setAnomalyDescription(h.getStatement());
+                a.setDeviationSigma(2.0);
+                a.setRootCause("待进一步下钻");
+                a.setBusinessImpact("需关注对经营指标的影响");
+                anomalies.add(a);
+            } else {
+                deep.add(item);
+            }
+            summary.add(item);
+        }
+        for (HypothesisVO h : pending) {
+            InsightReportVO.OpenLeadItem lead = new InsightReportVO.OpenLeadItem();
+            lead.setHypothesis(h.getStatement());
+            lead.setReasonIncomplete("证据不足，后验置信度 "
+                    + String.format("%.0f%%", (h.getConfidencePosterior() != null ? h.getConfidencePosterior() : 0.3) * 100));
+            lead.setSuggestedDataToCollect("补充 " + h.getLineagePath() + " 相关维度数据");
+            leads.add(lead);
+        }
+
+        if (summary.isEmpty()) {
+            return buildFallbackReport("探索完成，但未生成可验证假设。请确认 ClickHouse 数据已同步。");
+        }
+        report.setExecutiveSummary(summary.subList(0, Math.min(5, summary.size())));
+        report.setAnomalies(anomalies);
+        report.setDeepInsights(deep);
+        report.setOpenLeads(leads);
         return report;
     }
 
@@ -140,14 +191,53 @@ public class ReportComposer {
     private void attachEvidenceChains(InsightReportVO report,
                                        List<HypothesisVO> hypotheses,
                                        List<AutoEdaQueryLog> queryLogs) {
-        Map<String, AutoEdaQueryLog> queryMap = queryLogs.stream()
-                .collect(Collectors.toMap(AutoEdaQueryLog::getQueryId, q -> q, (a, b) -> a));
+        List<com.yupi.springbootinit.model.vo.autoeda.EvidenceChainVO> chain = buildEvidenceFromLogs(queryLogs, 5);
 
         if (report.getExecutiveSummary() != null) {
-            for (InsightReportVO.InsightItem item : report.getExecutiveSummary()) {
-                item.setEvidenceChain(Collections.emptyList());
+            for (int i = 0; i < report.getExecutiveSummary().size(); i++) {
+                InsightReportVO.InsightItem item = report.getExecutiveSummary().get(i);
+                if (item.getEvidenceChain() == null || item.getEvidenceChain().isEmpty()) {
+                    item.setEvidenceChain(chain);
+                }
+                if (item.getConfidence() == null && i < hypotheses.size()) {
+                    item.setConfidence(hypotheses.get(i).getConfidencePosterior());
+                }
             }
         }
+        if (report.getDeepInsights() != null) {
+            for (InsightReportVO.InsightItem item : report.getDeepInsights()) {
+                if (item.getEvidenceChain() == null || item.getEvidenceChain().isEmpty()) {
+                    item.setEvidenceChain(chain);
+                }
+            }
+        }
+        if (report.getAnomalies() != null) {
+            for (InsightReportVO.AnomalyItem item : report.getAnomalies()) {
+                if (item.getEvidenceChain() == null || item.getEvidenceChain().isEmpty()) {
+                    item.setEvidenceChain(chain);
+                }
+            }
+        }
+    }
+
+    private List<com.yupi.springbootinit.model.vo.autoeda.EvidenceChainVO> buildEvidenceFromLogs(
+            List<AutoEdaQueryLog> queryLogs, int maxSteps) {
+        List<com.yupi.springbootinit.model.vo.autoeda.EvidenceChainVO> chain = new ArrayList<>();
+        int start = Math.max(0, queryLogs.size() - maxSteps);
+        for (int i = start; i < queryLogs.size(); i++) {
+            AutoEdaQueryLog log = queryLogs.get(i);
+            com.yupi.springbootinit.model.vo.autoeda.EvidenceChainVO step =
+                    new com.yupi.springbootinit.model.vo.autoeda.EvidenceChainVO();
+            step.setStepOrder(i - start + 1);
+            step.setQueryId(log.getQueryId());
+            step.setQuerySql(log.getQuerySql());
+            step.setResultSummary(log.getResultSummary());
+            step.setResultRowCount(log.getResultRowCount());
+            step.setLineagePath(log.getLineagePath());
+            step.setIgScore(log.getIgScore());
+            chain.add(step);
+        }
+        return chain;
     }
 
     private double typeWeight(String type) {

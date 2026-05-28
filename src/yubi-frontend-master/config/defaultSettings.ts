@@ -13,7 +13,8 @@ const Settings: ProLayoutProps & {
   navTheme: 'light',
   /** 与大屏主题主色对齐，便于全站观感统一 */
   colorPrimary: '#2f84ff',
-  layout: 'mix',
+  /** 侧栏平铺菜单，避免 mix 布局下的折叠分组 */
+  layout: 'side',
   contentWidth: 'Fluid',
   fixedHeader: false,
   fixSiderbar: true,

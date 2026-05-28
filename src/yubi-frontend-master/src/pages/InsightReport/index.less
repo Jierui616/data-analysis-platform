@@ -1,2 +1,34 @@
 // InsightReport/index.less
-// Minimal styles — Ant Design handles most layout
+
+// Section spacing
+.ant-pro-card + .ant-pro-card {
+  margin-top: 0;
+}
+
+// SQL syntax block styling
+.audit-sql {
+  background: #f6f8fa;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #24292e;
+
+  code {
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+}
+
+// Evidence chain visual connector
+.ant-timeline-item {
+  padding-bottom: 20px;
+}
+
+// Collapse chevron alignment
+.ant-collapse-ghost > .ant-collapse-item > .ant-collapse-header {
+  padding-left: 0;
+}
