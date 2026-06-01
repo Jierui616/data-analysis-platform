@@ -35,6 +35,9 @@ public class ExplorationStateVO {
     /** 收敛状态 */
     private Boolean converged;
 
+    /** 实验模式：FULL / RANDOM / NO_IG 等 */
+    private String experimentMode;
+
     /** 下一步建议查询方向 */
     private List<String> suggestedNextDirections;
 

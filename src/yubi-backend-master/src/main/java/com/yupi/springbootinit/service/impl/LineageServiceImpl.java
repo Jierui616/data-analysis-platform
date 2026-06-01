@@ -1273,8 +1273,8 @@ public class LineageServiceImpl implements LineageService {
                 result.add(current);
             }
             QueryWrapper<LineageEdge> qw = new QueryWrapper<>();
-            qw.eq("from_node_key", current);
-            qw.eq("is_delete", 0);
+            qw.eq("fromNodeKey", current);
+            qw.eq("isDelete", 0);
             List<LineageEdge> edges = lineageEdgeMapper.selectList(qw);
             if (edges != null) {
                 for (LineageEdge e : edges) {
@@ -1306,8 +1306,8 @@ public class LineageServiceImpl implements LineageService {
                 result.add(current);
             }
             QueryWrapper<LineageEdge> qw = new QueryWrapper<>();
-            qw.eq("to_node_key", current);
-            qw.eq("is_delete", 0);
+            qw.eq("toNodeKey", current);
+            qw.eq("isDelete", 0);
             List<LineageEdge> edges = lineageEdgeMapper.selectList(qw);
             if (edges != null) {
                 for (LineageEdge e : edges) {
@@ -1337,8 +1337,8 @@ public class LineageServiceImpl implements LineageService {
         while (current != null && maxDepth-- > 0) {
             path.add(0, current.trim().toLowerCase());
             QueryWrapper<LineageEdge> qw = new QueryWrapper<>();
-            qw.eq("to_node_key", current.trim().toLowerCase());
-            qw.eq("is_delete", 0);
+            qw.eq("toNodeKey", current.trim().toLowerCase());
+            qw.eq("isDelete", 0);
             qw.last("limit 1");
             List<LineageEdge> edges = lineageEdgeMapper.selectList(qw);
             if (edges == null || edges.isEmpty()) {

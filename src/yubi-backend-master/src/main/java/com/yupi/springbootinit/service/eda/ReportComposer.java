@@ -7,6 +7,7 @@ import com.yupi.springbootinit.model.vo.autoeda.HypothesisVO;
 import com.yupi.springbootinit.model.vo.autoeda.InsightReportVO;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -19,6 +20,9 @@ public class ReportComposer {
 
     @Resource
     private AiManager aiManager;
+
+    @Value("${autoeda.report.use-llm:false}")
+    private boolean useLlmReport;
 
     private final Gson gson = new Gson();
 
@@ -86,6 +90,9 @@ public class ReportComposer {
                 StringUtils.defaultIfBlank(verifiedSummary, "无已验证假设"),
                 StringUtils.defaultIfBlank(pendingSummary, "无待确认线索"));
 
+        if (!useLlmReport) {
+            return buildFallbackFromHypotheses(verified, pending);
+        }
         try {
             String response = aiManager.doChat(0, prompt);
             InsightReportVO parsed = parseReportJson(response);

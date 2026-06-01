@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * 探索共享状态黑板。
@@ -33,17 +34,17 @@ public class ExplorationBlackboard {
         /** 已探索维度区域：dimensionType -> set of explored values */
         private Map<String, Set<String>> exploredRegions = new ConcurrentHashMap<>();
 
-        /** 已验证假设 */
-        private List<HypothesisVO> verifiedHypotheses = Collections.synchronizedList(new ArrayList<>());
+        /** 已验证假设（CopyOnWrite 避免与 getState 并发迭代死锁） */
+        private List<HypothesisVO> verifiedHypotheses = new CopyOnWriteArrayList<>();
 
         /** 待验证假设 */
-        private List<HypothesisVO> pendingHypotheses = Collections.synchronizedList(new ArrayList<>());
+        private List<HypothesisVO> pendingHypotheses = new CopyOnWriteArrayList<>();
 
         /** 当前活跃假设（本轮优先验证） */
-        private List<HypothesisVO> activeHypotheses = Collections.synchronizedList(new ArrayList<>());
+        private List<HypothesisVO> activeHypotheses = new CopyOnWriteArrayList<>();
 
         /** 探索轨迹：查询ID列表 */
-        private List<String> queryTrace = Collections.synchronizedList(new ArrayList<>());
+        private List<String> queryTrace = new CopyOnWriteArrayList<>();
 
         /** 最近 IG 最大值 */
         private double lastMaxIg = 1.0;
@@ -59,6 +60,12 @@ public class ExplorationBlackboard {
 
         /** 最近一次错误信息（FAILED 时展示） */
         private String lastError;
+
+        /** 假设连续无后验提升轮次 */
+        private Map<String, Integer> hypothesisStaleRounds = new ConcurrentHashMap<>();
+
+        /** 上一轮假设后验，用于判断 stale */
+        private Map<String, Double> hypothesisLastPosterior = new ConcurrentHashMap<>();
 
         public void markExplored(String dimensionType, String dimensionValue) {
             exploredRegions.computeIfAbsent(dimensionType, k -> ConcurrentHashMap.newKeySet())
@@ -102,6 +109,23 @@ public class ExplorationBlackboard {
 
         public void resetConvergenceCounter() {
             convergenceCounter = 0;
+        }
+
+        public void recordPosteriorProgress(String hypothesisId, double newPosterior) {
+            if (hypothesisId == null) {
+                return;
+            }
+            Double last = hypothesisLastPosterior.get(hypothesisId);
+            if (last == null || newPosterior > last + 0.02) {
+                hypothesisStaleRounds.put(hypothesisId, 0);
+            } else {
+                hypothesisStaleRounds.merge(hypothesisId, 1, Integer::sum);
+            }
+            hypothesisLastPosterior.put(hypothesisId, newPosterior);
+        }
+
+        public int getStaleRounds(String hypothesisId) {
+            return hypothesisStaleRounds.getOrDefault(hypothesisId, 0);
         }
     }
 }

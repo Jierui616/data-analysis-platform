@@ -3,10 +3,7 @@ package com.yupi.springbootinit.service.eda;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.yupi.springbootinit.manager.AiManager;
-import com.yupi.springbootinit.model.vo.autoeda.EvidenceChainVO;
 import com.yupi.springbootinit.model.vo.autoeda.HypothesisVO;
-import com.yupi.springbootinit.service.ClickHouseQueryService;
-import com.yupi.springbootinit.service.LineageService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,10 +22,7 @@ public class HypothesisManager {
     private AiManager aiManager;
 
     @Resource
-    private LineageService lineageService;
-
-    @Resource
-    private ClickHouseQueryService clickHouseQueryService;
+    private HypothesisVerifyExecutor hypothesisVerifyExecutor;
 
     @Resource
     private ExplorationBlackboard blackboard;
@@ -44,6 +38,12 @@ public class HypothesisManager {
     @Value("${autoeda.hypothesis.max-stale-rounds:3}")
     private int maxStaleRounds;
 
+    @Value("${autoeda.hypothesis.verify-enabled:true}")
+    private boolean verifyEnabled;
+
+    @Value("${autoeda.hypothesis.use-llm-generation:true}")
+    private boolean useLlmGeneration;
+
     private static final String HYPOTHESIS_GEN_PROMPT =
         "你是一个数据分析师。请基于最新的查询结果，从五个维度生成候选假设。\n"
         + "你必须为每个假设指定血缘链路径(沿数据加工链路下钻)。\n"
@@ -55,13 +55,13 @@ public class HypothesisManager {
         + "五个维度: 1)时序对比 2)结构拆解(沿血缘下钻) 3)异常检测(Z-score) 4)相关性 5)反事实试探\n"
         + "\n最新查询结果:\n%s\n\n已有假设:\n%s\n\n数据血缘可及字段:\n%s";
 
-    /**
-     * 从新查询结果生成候选假设（LLM）
-     */
     public List<HypothesisVO> generateHypotheses(String queryResultSummary,
                                                   List<HypothesisVO> existingHypotheses,
                                                   List<String> lineageReachableFields,
                                                   String rootMetric) {
+        if (!useLlmGeneration) {
+            return Collections.emptyList();
+        }
         String prompt = String.format(HYPOTHESIS_GEN_PROMPT,
                 limit(queryResultSummary, 3000),
                 summarizeExisting(existingHypotheses),
@@ -70,7 +70,9 @@ public class HypothesisManager {
         try {
             String response = aiManager.doChat(0, prompt);
             List<HypothesisVO> parsed = parseHypotheses(response);
-            if (!parsed.isEmpty()) return parsed;
+            if (!parsed.isEmpty()) {
+                return filterByLineageReachable(parsed, lineageReachableFields);
+            }
         } catch (Exception e) {
             log.warn("Hypothesis generation failed: {}", e.getMessage());
         }
@@ -78,40 +80,37 @@ public class HypothesisManager {
     }
 
     /**
-     * Bayesian 更新：沿血缘链路验证假设的证据一致性
+     * Bayesian 更新：优先使用 ClickHouse 验证查询的一致性，辅以血缘路径与证据链。
      */
-    public double evaluateEvidence(HypothesisVO hypothesis, String sessionId) {
-        String lineagePath = hypothesis.getLineagePath();
-        double base = 0.45;
+    public double evaluateEvidence(HypothesisVO hypothesis, ExplorationContext ctx) {
+        HypothesisVerifyExecutor.VerificationResult vr =
+                hypothesisVerifyExecutor.verify(hypothesis, ctx);
+        return evaluateEvidence(hypothesis, ctx, vr);
+    }
 
+    public double evaluateEvidence(HypothesisVO hypothesis, ExplorationContext ctx,
+                                   HypothesisVerifyExecutor.VerificationResult vr) {
+        double base = 0.25 + 0.7 * (vr != null ? vr.getConsistency() : 0.45);
+
+        String lineagePath = hypothesis.getLineagePath();
         if (StringUtils.isNotBlank(lineagePath)) {
             String[] nodes = lineagePath.split("→|->");
             int matched = 0;
             for (String node : nodes) {
-                String key = node.trim().toLowerCase();
-                if (key.length() > 1) matched++;
+                if (node.trim().length() > 1) {
+                    matched++;
+                }
             }
-            base += Math.min(0.3, matched * 0.08);
+            base += Math.min(0.15, matched * 0.04);
         }
 
-        if (hypothesis.getSourceQueryIds() != null && !hypothesis.getSourceQueryIds().isEmpty()) {
-            base += 0.15;
-        }
         if (hypothesis.getEvidenceChain() != null && !hypothesis.getEvidenceChain().isEmpty()) {
-            base += Math.min(0.2, hypothesis.getEvidenceChain().size() * 0.05);
+            base += Math.min(0.1, hypothesis.getEvidenceChain().size() * 0.03);
         }
 
-        ExplorationBlackboard.SessionState state = blackboard.get(sessionId);
-        if (state != null && state.getQueryCount() > 0) {
-            base += Math.min(0.1, state.getQueryCount() * 0.01);
-        }
-
-        return Math.min(0.95, base);
+        return Math.min(0.98, base);
     }
 
-    /**
-     * LLM 不可用时的规则化假设生成（基于查询结果 JSON）
-     */
     public List<HypothesisVO> generateRuleBasedHypotheses(String queryResultSummary,
                                                            List<String> availableColumns,
                                                            String queryId) {
@@ -130,7 +129,7 @@ public class HypothesisManager {
         trend.setStatement("查询结果显示 " + metricCol + " 存在时间维度波动，需进一步下钻验证");
         trend.setLineagePath(metricCol + "→statDate");
         trend.setConfidencePrior(0.3);
-        trend.setConfidencePosterior(0.35);
+        trend.setConfidencePosterior(0.3);
         trend.setStatus("PENDING");
         trend.setSourceQueryIds(Collections.singletonList(queryId));
         result.add(trend);
@@ -142,7 +141,7 @@ public class HypothesisManager {
             segment.setStatement("不同门店间 " + metricCol + " 存在结构性差异，建议按 storeId 分组对比");
             segment.setLineagePath(metricCol + "→storeId");
             segment.setConfidencePrior(0.3);
-            segment.setConfidencePosterior(0.32);
+            segment.setConfidencePosterior(0.3);
             segment.setStatus("PENDING");
             segment.setSourceQueryIds(Collections.singletonList(queryId));
             result.add(segment);
@@ -155,7 +154,7 @@ public class HypothesisManager {
             anomaly.setStatement("部分维度组合的数据偏离整体均值，可能存在异常点需进一步验证");
             anomaly.setLineagePath(metricCol);
             anomaly.setConfidencePrior(0.3);
-            anomaly.setConfidencePosterior(0.38);
+            anomaly.setConfidencePosterior(0.3);
             anomaly.setStatus("PENDING");
             anomaly.setSourceQueryIds(Collections.singletonList(queryId));
             result.add(anomaly);
@@ -164,46 +163,52 @@ public class HypothesisManager {
         return result;
     }
 
-    /**
-     * Beta-Binomial 后验更新
-     * 将 evidence consistency 映射为 Beta 分布的观测
-     */
     public double bayesianUpdate(double prior, double evidenceConsistency, int evidenceSteps) {
         double alphaPrior = prior * 10 + 1;
         double betaPrior = (1 - prior) * 10 + 1;
         int successes = (int) Math.round(evidenceConsistency * evidenceSteps);
-        int failures = evidenceSteps - successes;
+        int failures = Math.max(0, evidenceSteps - successes);
         double alphaPost = alphaPrior + successes;
         double betaPost = betaPrior + failures;
         return alphaPost / (alphaPost + betaPost);
     }
 
-    /**
-     * 对假设池执行一轮 Bayesian 分类
-     */
     public HypothesisCycleResult runCycle(List<HypothesisVO> pending,
                                            List<HypothesisVO> active,
-                                           String sessionId) {
-        ExplorationBlackboard.SessionState state = blackboard.getOrCreate(sessionId);
+                                           ExplorationContext ctx) {
+        ExplorationBlackboard.SessionState state = blackboard.getOrCreate(ctx.getSessionId());
 
         List<HypothesisVO> verified = new ArrayList<>();
         List<HypothesisVO> discarded = new ArrayList<>();
         List<HypothesisVO> keepPending = new ArrayList<>();
 
-        // 复制列表，避免 addVerified 修改 pending 时触发 ConcurrentModificationException
         for (HypothesisVO h : new ArrayList<>(pending)) {
             double prior = h.getConfidencePosterior() != null
                     ? h.getConfidencePosterior()
                     : (h.getConfidencePrior() != null ? h.getConfidencePrior() : 0.3);
-            double evidence = evaluateEvidence(h, sessionId);
+
+            HypothesisVerifyExecutor.VerificationResult vr;
+            if (verifyEnabled) {
+                vr = hypothesisVerifyExecutor.verify(h, ctx);
+                hypothesisVerifyExecutor.appendEvidenceStep(h, "verify_" + h.getHypothesisId(), vr);
+            } else {
+                vr = new HypothesisVerifyExecutor.VerificationResult();
+                vr.setConsistency(0.55);
+            }
+
+            double evidence = evaluateEvidence(h, ctx, vr);
             int steps = Math.max(1, state.getQueryCount());
             double posterior = bayesianUpdate(prior, evidence, steps);
             h.setConfidencePosterior(posterior);
+            state.recordPosteriorProgress(h.getHypothesisId(), posterior);
 
+            int stale = state.getStaleRounds(h.getHypothesisId());
             if (posterior >= thetaAccept) {
                 verified.add(h);
-            } else if (posterior < thetaReject) {
+            } else if (posterior < thetaReject && stale >= maxStaleRounds) {
                 discarded.add(h);
+            } else if (posterior < thetaReject && stale < maxStaleRounds) {
+                keepPending.add(h);
             } else {
                 keepPending.add(h);
             }
@@ -224,8 +229,29 @@ public class HypothesisManager {
         result.verified = verified;
         result.discarded = discarded;
         result.keepPending = keepPending;
-        result.topActive = allActive.subList(0, Math.min(5, allActive.size()));
+        result.topActive = allActive.isEmpty()
+                ? Collections.emptyList()
+                : new ArrayList<>(allActive.subList(0, Math.min(5, allActive.size())));
         return result;
+    }
+
+    private List<HypothesisVO> filterByLineageReachable(List<HypothesisVO> parsed, List<String> reachable) {
+        if (reachable == null || reachable.isEmpty()) {
+            return parsed;
+        }
+        List<HypothesisVO> out = new ArrayList<>();
+        for (HypothesisVO h : parsed) {
+            if (StringUtils.isBlank(h.getLineagePath())) {
+                out.add(h);
+                continue;
+            }
+            String path = h.getLineagePath().toLowerCase();
+            boolean ok = reachable.stream().anyMatch(r -> path.contains(r.toLowerCase()));
+            if (ok) {
+                out.add(h);
+            }
+        }
+        return out.isEmpty() ? parsed : out;
     }
 
     public static class HypothesisCycleResult {

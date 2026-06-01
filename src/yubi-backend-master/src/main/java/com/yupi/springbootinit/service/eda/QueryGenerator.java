@@ -73,7 +73,7 @@ public class QueryGenerator {
             List<String> vals = entry.getValue();
             if (vals == null || vals.isEmpty()) continue;
 
-            if ("time".equalsIgnoreCase(dimKey) || vals.contains("recent")) {
+            if ("time".equalsIgnoreCase(dimKey) || vals.contains("recent") || vals.contains("monthly")) {
                 selectParts.add("formatDateTime(statDate, '%Y-%m') AS month");
                 groupByParts.add("month");
             } else if ("dimension".equalsIgnoreCase(dimKey)) {

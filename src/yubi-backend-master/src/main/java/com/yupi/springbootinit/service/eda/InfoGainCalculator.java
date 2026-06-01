@@ -71,7 +71,7 @@ public class InfoGainCalculator {
     /**
      * CoverageNew: 未探索维度单元占查询涉及单元的比例
      */
-    private double calcCoverageNew(Map<String, List<String>> queryDimensions,
+    double calcCoverageNew(Map<String, List<String>> queryDimensions,
                                    Map<String, Set<String>> exploredRegions) {
         if (queryDimensions == null || queryDimensions.isEmpty()) return 1.0;
 
@@ -92,14 +92,14 @@ public class InfoGainCalculator {
      * SurpriseScore: 将异常 Z-score 归一化到 [0,1]
      * 使用 tanh，使得 Z=2 → 0.96, Z=3 → 1.0
      */
-    private double normalizeSurprise(double zScore) {
+    double normalizeSurprise(double zScore) {
         return Math.tanh(Math.abs(zScore) / 2.0);
     }
 
     /**
      * LineageDepth: 从根指标到当前节点的血缘跳数 / maxDepth
      */
-    private double calcLineageDepth(String nodeKey, String rootMetricKey) {
+    double calcLineageDepth(String nodeKey, String rootMetricKey) {
         if (nodeKey == null || rootMetricKey == null) return 0;
         if (nodeKey.equals(rootMetricKey)) return 0;
         List<String> path = lineageService.getLineagePath(nodeKey);
@@ -112,8 +112,29 @@ public class InfoGainCalculator {
     /**
      * Cost: 预估扫描行数 / 最大行数，归一化到 [0,1]
      */
-    private double normalizeCost(long estimatedRows) {
+    double normalizeCost(long estimatedRows) {
         return Math.min(1.0, (double) estimatedRows / costMaxRows);
+    }
+
+    /**
+     * 仅返回血缘深度分项（供消融对比）
+     */
+    public double lineageDepthOnly(String nodeKey, String rootMetricKey) {
+        return calcLineageDepth(nodeKey, rootMetricKey);
+    }
+
+    /**
+     * 不含血缘深度的 IG（NO_LINEAGE 消融）
+     */
+    public double calculateWithoutLineage(Map<String, List<String>> queryDimensions,
+                                          Map<String, Set<String>> exploredRegions,
+                                          double surpriseContext,
+                                          long estimatedRows) {
+        double coverage = calcCoverageNew(queryDimensions, exploredRegions);
+        double surprise = normalizeSurprise(surpriseContext);
+        double cost = normalizeCost(estimatedRows);
+        double ig = wCoverage * coverage + wSurprise * surprise - wCost * cost;
+        return Math.max(0.0, Math.min(1.0, ig));
     }
 
     /**

@@ -15,18 +15,21 @@ public class ClickHouseQueryServiceImpl implements ClickHouseQueryService {
     @Value("${bigdata.clickhouse.url:jdbc:ch://localhost:8123/yubi_analytics}")
     private String clickhouseUrl;
 
-    @Value("${bigdata.clickhouse.user:default}")
+    @Value("${bigdata.clickhouse.username:${bigdata.clickhouse.user:default}}")
     private String clickhouseUser;
 
     @Value("${bigdata.clickhouse.password:}")
     private String clickhousePassword;
 
+    @Value("${autoeda.experiment.use-explain-cost:true}")
+    private boolean useExplainCost;
+
     private Connection getConnection() throws SQLException {
         Properties props = new Properties();
         props.setProperty("user", clickhouseUser);
-        if (clickhousePassword != null && !clickhousePassword.isEmpty()) {
-            props.setProperty("password", clickhousePassword);
-        }
+        props.setProperty("password", clickhousePassword != null ? clickhousePassword : "");
+        props.setProperty("socket_timeout", "30000");
+        props.setProperty("connect_timeout", "10000");
         return DriverManager.getConnection(clickhouseUrl, props);
     }
 
@@ -73,10 +76,22 @@ public class ClickHouseQueryServiceImpl implements ClickHouseQueryService {
         try {
             String explainSql = "EXPLAIN ESTIMATE " + sql;
             List<Map<String, Object>> rows = executeQuery(explainSql);
-            if (!rows.isEmpty()) {
-                Object rowsObj = rows.get(0).getOrDefault("rows", rows.get(0).get("estimate"));
-                if (rowsObj instanceof Number) {
-                    return ((Number) rowsObj).longValue();
+            for (Map<String, Object> row : rows) {
+                Object direct = row.get("rows");
+                if (direct == null) {
+                    direct = row.get("estimate");
+                }
+                if (direct instanceof Number) {
+                    return ((Number) direct).longValue();
+                }
+                for (Map.Entry<String, Object> entry : row.entrySet()) {
+                    String key = entry.getKey() != null ? entry.getKey().toLowerCase() : "";
+                    if (key.contains("rows") || key.contains("estimate") || key.contains("read")) {
+                        Object val = entry.getValue();
+                        if (val instanceof Number) {
+                            return ((Number) val).longValue();
+                        }
+                    }
                 }
             }
         } catch (Exception e) {
@@ -90,7 +105,7 @@ public class ClickHouseQueryServiceImpl implements ClickHouseQueryService {
         long start = System.currentTimeMillis();
         List<Map<String, Object>> rows = executeQuery(sql);
         long elapsed = System.currentTimeMillis() - start;
-        long scanned = estimateRowCount(sql);
+        long scanned = useExplainCost ? estimateRowCount(sql) : Math.max(rows.size(), 1);
         return new QueryResult(rows, rows.size(), elapsed, scanned);
     }
 }

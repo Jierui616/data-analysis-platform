@@ -108,9 +108,10 @@ bigdata:
   clickhouse:
     enabled: false
     prefer-read: true
-    url: jdbc:ch://127.0.0.1:8123/yubi_analytics
+    url: jdbc:clickhouse://127.0.0.1:8123/yubi_analytics
     username: default
-    password: ""
+    # ClickHouse 24.8 官方镜像 default 用户密码为两个双引号字符 ""，见 deploy.md
+    password: '""'
   kafka:
     enabled: false
     bootstrap-servers: localhost:9092
@@ -134,15 +135,22 @@ storage:
     access-key: minioadmin
     secret-key: minioadmin123
     bucket: yubi-charts
-# 阿里云百炼 DashScope（OpenAI 兼容接口）
-# 控制台：https://bailian.console.aliyun.com/  → 创建 API Key
-# 若报错「免费额度已用尽 / AllocationQuota.FreeTierOnly」：在控制台关闭「仅限免费额度」或为账户开通按量付费
+# AI 模型配置：默认使用阿里云百炼 DashScope（OpenAI 兼容接口）
+# 也可切换为本地 Ollama：ai.provider=ollama（需先启动 Ollama 并拉取模型）
+ai:
+  provider: dashscope   # dashscope | ollama
+
+ollama:
+  base-url: http://127.0.0.1:11434
+  model: qwen2.5:7b
+  # 当 Ollama 不可用时是否回退到 DashScope
+  fallback-to-dashscope: true
+
+# 阿里云百炼 DashScope（OpenAI 兼容接口，ai.provider=dashscope 时使用）
+# 控制台：https://bailian.console.aliyun.com/ → 创建 API Key
 dashscope:
-  # 注意：冒号后面必须有空格，例如 api-key: sk-xxxx（写成 api-key:sk-xxxx 会整份 yml 解析失败）
   api-key: sk-d737d4f2cb744bbd85265efe26b123ec
-  # 模型名以百炼控制台「OpenAI 兼容」文档为准，可换：qwen-turbo / qwen-plus / qwen-max / qwen-long / qwen2.5-7b-instruct 等
   model: qwen-plus-latest
-# qwen3-32b qwen-max-2025-01-25 qwen-plus-2025-07-28 qwen2.5-vl-72b-instruct qwen-plus-latest
 
 # BI Center：overview 结果缓存（命中可跳过查库 + CSV 解析 + 计算）
 bicenter:
@@ -178,7 +186,48 @@ autoeda:
     weight-lineage-depth: 0.20
     weight-cost: 0.15
     cost-max-rows: 5000000
+    cost-fallback-rows: 100000
+  # ── AIG: 自适应阶段感知 InfoGain ──
+  aig:
+    # BROAD_SWEEP 广度扫描阶段权重
+    sweep:
+      coverage: 0.50
+      surprise: 0.15
+      lineage: 0.15
+      cost: 0.20
+    # DEEP_DRILL 深度下钻阶段权重
+    drill:
+      coverage: 0.10
+      surprise: 0.35
+      lineage: 0.40
+      cost: 0.15
+    # VERIFICATION 验证收敛阶段权重
+    verify:
+      coverage: 0.05
+      surprise: 0.25
+      lineage: 0.50
+      cost: 0.20
+    # 阶段切换阈值
+    phase-sweep-min-verified: 3
+    phase-sweep-budget-ratio: 0.33
+    phase-verify-budget-ratio: 0.80
+  # ── EHIG: 期望假设信息增益 ──
+  ehig:
+    evidence-steps: 3
+    relevance-threshold: 0.15
+    confidence-floor: 0.25
   hypothesis:
-    accept-threshold: 0.75
+    accept-threshold: 0.60
     reject-threshold: 0.25
     max-stale-rounds: 3
+    verify-enabled: false
+    verify-top-k: 2
+    # 批跑实验：关闭 LLM 假设生成，用规则假设 + Bayesian，避免 DashScope 长时间阻塞
+    use-llm-generation: false
+  report:
+    use-llm: false
+  experiment:
+    candidate-pool-size: 8
+    export-dir: experiments/out
+    # 选查询前对候选 SQL 执行 EXPLAIN ESTIMATE，写入 IG 的 Cost 分项
+    use-explain-cost: false

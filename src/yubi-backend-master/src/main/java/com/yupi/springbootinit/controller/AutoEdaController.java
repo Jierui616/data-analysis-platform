@@ -129,4 +129,12 @@ public class AutoEdaController {
         User loginUser = userService.getLoginUser(request);
         return ResultUtils.success(autoEdaService.deleteSession(sessionId, loginUser.getId()));
     }
+
+    /**
+     * 检测本地 Ollama / 云端模型是否可用
+     */
+    @GetMapping("/ai-health")
+    public BaseResponse<Map<String, Object>> aiHealth() {
+        return ResultUtils.success(autoEdaService.checkAiHealth());
+    }
 }

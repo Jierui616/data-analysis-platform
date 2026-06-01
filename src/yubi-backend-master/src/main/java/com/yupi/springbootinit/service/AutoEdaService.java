@@ -9,6 +9,7 @@ import com.yupi.springbootinit.model.vo.autoeda.HypothesisVO;
 import com.yupi.springbootinit.model.vo.autoeda.InsightReportVO;
 
 import java.util.List;
+import java.util.Map;
 
 public interface AutoEdaService {
 
@@ -56,4 +57,9 @@ public interface AutoEdaService {
      * 删除探索记录（含报告与关联日志，仅本人可操作）
      */
     boolean deleteSession(String sessionId, Long userId);
+
+    /**
+     * 检测 AI 模型连通性
+     */
+    Map<String, Object> checkAiHealth();
 }
