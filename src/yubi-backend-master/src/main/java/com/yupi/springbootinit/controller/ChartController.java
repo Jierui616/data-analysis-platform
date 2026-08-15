@@ -188,14 +188,29 @@ public class ChartController {
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        Chart chart = chartService.getById(id);
-        if (chart == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
-        }
+        Chart chart = getOwnedChartOrThrow(id, request);
         if (StringUtils.isBlank(chart.getResultMeta())) {
             chart.setResultMeta(buildResultMeta(chart));
         }
         return ResultUtils.success(chart);
+    }
+
+    /**
+     * 获取当前用户可访问的图表。
+     *
+     * @param chartId
+     * @param request
+     * @return
+     */
+    private Chart getOwnedChartOrThrow(long chartId, HttpServletRequest request) {
+        ThrowUtils.throwIf(chartId <= 0, ErrorCode.PARAMS_ERROR);
+        Chart chart = chartService.getById(chartId);
+        ThrowUtils.throwIf(chart == null, ErrorCode.NOT_FOUND_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        boolean isOwner = chart.getUserId() != null && chart.getUserId().equals(loginUser.getId());
+        boolean isAdmin = userService.isAdmin(loginUser);
+        ThrowUtils.throwIf(!isOwner && !isAdmin, ErrorCode.NO_AUTH_ERROR);
+        return chart;
     }
 
     /**
@@ -208,6 +223,13 @@ public class ChartController {
     @PostMapping("/list/page")
     public BaseResponse<Page<Chart>> listChartByPage(@RequestBody ChartQueryRequest chartQueryRequest,
             HttpServletRequest request) {
+        if (chartQueryRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginUser = userService.getLoginUser(request);
+        if (!userService.isAdmin(loginUser)) {
+            chartQueryRequest.setUserId(loginUser.getId());
+        }
         long current = chartQueryRequest.getCurrent();
         long size = chartQueryRequest.getPageSize();
         // 限制爬虫
