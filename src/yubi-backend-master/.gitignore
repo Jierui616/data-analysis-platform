@@ -56,6 +56,10 @@ build/
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 
+# Local secrets
+src/main/resources/application-local.yml
+src/main/resources/application-*.local.yml
+
 ### Maven template
 target/
 pom.xml.tag
@@ -141,4 +145,3 @@ fabric.properties
 
 # Android studio 3.1+ serialized cache file
 .idea/caches/build_file_checksums.ser
-
