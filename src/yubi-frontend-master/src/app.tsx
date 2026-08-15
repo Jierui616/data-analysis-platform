@@ -12,12 +12,15 @@ import { errorConfig } from './requestConfig';
 const isDev = process.env.NODE_ENV === 'development';
 const loginPath = '/user/login';
 
+type InitialState = {
+  currentUser?: API.LoginUserVO;
+  settings?: any;
+};
+
 /**
  * @see  https://umijs.org/zh-CN/plugins/plugin-initial-state
  * */
-export async function getInitialState(): Promise<{
-  currentUser?: API.LoginUserVO;
-}> {
+export async function getInitialState(): Promise<InitialState> {
   const fetchUserInfo = async () => {
     try {
       const res = await getLoginUserUsingGET();
@@ -33,10 +36,13 @@ export async function getInitialState(): Promise<{
     const currentUser = await fetchUserInfo();
     return {
       currentUser,
+      settings: defaultSettings,
     };
   }
 
-  return {};
+  return {
+    settings: defaultSettings,
+  };
 }
 
 // ProLayout 支持的api https://procomponents.ant.design/components/layout
@@ -68,7 +74,7 @@ export const layout: RunTimeLayoutConfig = ({ initialState, setInitialState }) =
       },
     },
     // 关闭全站水印（原逻辑为显示当前登录账号，如 test001）
-    waterMarkProps: false,
+    waterMarkProps: undefined,
     footerRender: false,
     onPageChange: () => {
       const { location } = history;

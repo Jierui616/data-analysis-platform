@@ -18,7 +18,6 @@ import {
 } from '@/services/yubi/autoEdaController';
 import type { ExplorationState, HypothesisItem, AutoEdaChartOption } from '@/services/yubi/autoEdaController';
 import { getChartByIdUsingGET } from '@/services/yubi/chartController';
-import type { API } from '@/services/yubi/typings';
 import { translateHypothesisType, explorationStatusLabel } from '@/utils/explorationLabels';
 import './index.less';
 
