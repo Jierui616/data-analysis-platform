@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    password: change-me
+    restaurant:
+      password: change-me
+    risk:
+      password: change-me
+
+dashscope:
+  api-key: sk-your-local-key
+
+cors:
+  allowed-origins:
+    - http://localhost:8000
+    - http://127.0.0.1:8000

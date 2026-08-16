@@ -16,12 +16,12 @@ const AddChartAsync: React.FC = () => {
 
   const randomCases = [
     {
-      goal: '分析某电商平台近 12 个月各品类的销售额、毛利率和退货率变化，找出高潜力品类与风险品类，并给出运营优化建议',
-      name: '电商品类经营分析',
+      goal: '分析连锁门店近 12 个月各品类销售额、毛利率和退货率变化，找出高潜力品类与风险品类，并给出运营优化建议',
+      name: '零售品类经营分析',
     },
     {
-      goal: '分析某 SaaS 产品最近 6 个月新增用户、活跃用户、付费转化率与流失率趋势，定位增长瓶颈并提出增长方案',
-      name: 'SaaS 用户增长分析',
+      goal: '分析会员最近 6 个月新增、活跃、复购率与流失率趋势，定位会员运营瓶颈并提出提升方案',
+      name: '会员增长与留存分析',
     },
     {
       goal: '分析某门店连锁近 4 个季度营收、利润、库存周转与营销投入产出，识别利润下滑原因并给出改善动作',
@@ -55,7 +55,7 @@ const AddChartAsync: React.FC = () => {
       } else if (!res?.data) {
         message.error('分析失败：无返回数据');
       } else {
-        message.success('分析任务提交成功，请稍后在「图表管理与回看」页面查看结果');
+        message.success('分析任务提交成功，请稍后在「图表资产」页面查看结果');
         form.resetFields();
       }
     } catch (e: any) {
@@ -77,7 +77,7 @@ const AddChartAsync: React.FC = () => {
 
   return (
     <div className="add-chart-async">
-      <Card title="智能分析">
+      <Card title="异步分析">
         <Form
           form={form}
           name="addChart"
@@ -92,7 +92,7 @@ const AddChartAsync: React.FC = () => {
             label="分析目标"
             rules={[{ required: true, message: '请输入分析目标' }]}
           >
-            <TextArea placeholder="请输入你的分析需求，比如：分析网站用户的增长情况" />
+            <TextArea placeholder="请输入你的分析需求，比如：分析门店销售额和毛利率变化" />
           </Form.Item>
           <Form.Item name="name" label="图表名称">
             <Input placeholder="请输入图表名称" />

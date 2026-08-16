@@ -1,4 +1,4 @@
-# 智能数据分析平台 · 前端（湖仓数智金融分析平台）
+# 零售经营智能分析平台 · 前端
 
 基于 **Ant Design Pro + Umi Max 4** 的企业级中后台前端，与 `yubi-backend` 配合使用，提供智能图表生成、经营大屏、数据血缘与风险画像等页面。
 
@@ -14,14 +14,16 @@
 | 路由 | 说明 |
 |------|------|
 | `/user/login` | 登录 |
-| `/add_chart` | 智能分析（实时） |
-| `/add_chart_async` | 智能分析（异步） |
-| `/deep_chat` | 深度对话（BI 多轮） |
+| `/ai/realtime` | 经营问数（实时） |
+| `/ai/async` | 异步分析 |
+| `/ai/chat` | 分析对话（BI 多轮） |
 | `/chart_result/:id` | 图表结果页 |
-| `/my_chart` | 图表管理与结果回看（含血缘弹窗等） |
-| `/lineage_center` | 血缘追踪中心 |
-| `/data_import` | 成本与排班导入 |
-| `/bi_bigscreen` | 经营指挥大屏 |
+| `/biz/charts` | 图表资产与结果回看（含血缘弹窗等） |
+| `/lineage/trace` | 数据血缘 |
+| `/lineage/explore` | 经营探索 |
+| `/lineage/history` | 探索记录 |
+| `/biz/import` | 经营数据导入 |
+| `/biz/bigscreen` | 经营驾驶舱 |
 | `/risk_portrait/overview` | 风险画像 · 总览 |
 | `/risk_portrait/store` | 门店/加盟商画像 |
 | `/risk_portrait/member` | 会员画像 |
@@ -30,9 +32,9 @@
 | `/risk_portrait/audit` | 命中与留痕 |
 | `/admin/*` | 管理页（需管理员权限） |
 
-默认进入站点根路径 `/` 会重定向到 **`/add_chart`**。
+默认进入站点根路径 `/` 会重定向到 **`/ai/realtime`**。
 
-布局标题与站点名称在 `config/config.ts`、`config/defaultSettings.ts` 中配置（当前为「湖仓数智金融分析平台」）。
+布局标题与站点名称在 `config/config.ts`、`config/defaultSettings.ts` 中配置（当前为「零售经营智能分析平台」）。
 
 ## 环境要求
 
@@ -95,7 +97,7 @@ npm run openapi
 
 以重新生成部分接口定义（生成前建议备份已手工修改的文件）。
 
-## 质量脚本（可选）
+## 检查脚本（可选）
 
 ```bash
 npm run lint       # ESLint + Prettier + tsc

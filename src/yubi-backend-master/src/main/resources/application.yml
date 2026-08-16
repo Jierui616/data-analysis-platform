@@ -18,14 +18,24 @@ spring:
     # 30 天过期
     timeout: 2592000
   # 数据库配置
-  # todo 需替换配置
+  # 三个 MySQL 库：yubi（主库）、yubi_restaurant（餐饮）、yubi_risk（风险画像）
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/yubi
     username: root
-    password: 916108
-    # 风险画像留痕表 risk_portrait_hit_log：执行一次 sql/risk_portrait_schema.sql（库名与 url 一致）。
-    # 同文件含会员导入表 risk_portrait_member_*、匿名分桶 risk_portrait_anonymous_cluster；开关见 risk-portrait.*（文件末尾）。
+    password: ${MYSQL_PASSWORD:}
+    # 餐饮模块独立库（表由 sql/03_init_yubi_restaurant.sql 创建）
+    restaurant:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/yubi_restaurant
+      username: root
+      password: ${RESTAURANT_MYSQL_PASSWORD:${MYSQL_PASSWORD:}}
+    # 风险画像独立库（表由 sql/04_init_yubi_risk.sql 创建）
+    risk:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/yubi_risk
+      username: root
+      password: ${RISK_MYSQL_PASSWORD:${MYSQL_PASSWORD:}}
   # Redis 配置
   # todo 需替换配置，然后取消注释
   redis:
@@ -149,8 +159,13 @@ ollama:
 # 阿里云百炼 DashScope（OpenAI 兼容接口，ai.provider=dashscope 时使用）
 # 控制台：https://bailian.console.aliyun.com/ → 创建 API Key
 dashscope:
-  api-key: sk-d737d4f2cb744bbd85265efe26b123ec
+  api-key: ${DASHSCOPE_API_KEY:}
   model: qwen-plus-latest
+
+cors:
+  allowed-origins:
+    - http://localhost:8000
+    - http://127.0.0.1:8000
 
 # BI Center：overview 结果缓存（命中可跳过查库 + CSV 解析 + 计算）
 bicenter:

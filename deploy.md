@@ -1,4 +1,4 @@
-# 智能数据分析平台（全栈）· 部署说明
+# 零售经营智能分析平台 · 部署说明
 
 ## 仓库目录约定
 
@@ -152,7 +152,9 @@ docker compose -f docker-compose.bigdata.yml down -v
 
 编辑 **`src/yubi-backend-master/src/main/resources/application.yml`**（敏感项勿提交到公开仓库，可用本地私有配置或环境变量覆盖）：
 
-- **`spring.datasource`**：`url`、`username`、`password` 与本地 MySQL 一致（默认 URL 指向 `localhost:3306/yubi`）。
+- **`spring.datasource`**：主库 `url`/`username`/`password`（默认 `localhost:3306/yubi`）。  
+- **`spring.datasource.restaurant`**：餐饮库 `yubi_restaurant`。  
+- **`spring.datasource.risk`**：风险画像库 `yubi_risk`。三个库默认在同一 MySQL 实例，可配置不同实例。
 - **`dashscope.api-key`** 等：使用阿里云百炼时按需填写。
 - **`spring.rabbitmq.*`**：使用消息队列时与 Docker 或本机 RabbitMQ 一致。
 - **`server.port`**：默认 **18080**；`context-path` 为 **`/api`**。若改端口，需同步改前端代理（见下文）。
@@ -161,42 +163,68 @@ docker compose -f docker-compose.bigdata.yml down -v
 
 ## 五、初始化数据库（首次必做）
 
-脚本中大量使用 `IF NOT EXISTS` 等语义，**已有库表时重复执行一般不会破坏结构**；仍建议重要环境先在测试库验证。
+项目现已拆分为 **3 个 MySQL 库** + **1 个 ClickHouse 库**：
 
-### 5.1 创建数据库
+| 数据库 | 说明 | 表数 |
+|--------|------|------|
+| `yubi` | 主库：核心平台 + 血缘 + AutoEDA | 12 |
+| `yubi_restaurant` | 餐饮模块：门店、菜品、活动、成本、排班、预警 | 10 |
+| `yubi_risk` | 风险画像模块：命中留痕、会员名单、匿名分桶 | 5 |
+| `yubi_analytics` | ClickHouse OLAP（可选，见三（乙）） | 2 |
 
+### 5.1 一键部署（推荐）
+
+进入后端目录，执行 `deploy_all.sql`（一次完成所有建库 + 建表 + 种子数据）：
+
+**PowerShell：**
 ```powershell
-mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS yubi DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+cd "<项目根>\src\yubi-backend-master"
+Get-Content .\sql\deploy_all.sql | mysql -u root -p
 ```
 
-### 5.2 按顺序执行 SQL（顺序不要打乱）
+**CMD / Git Bash：**
+```bash
+cd "src/yubi-backend-master"
+mysql -u root -p < sql/deploy_all.sql
+```
 
-在 PowerShell 中进入后端目录（路径含空格时请给整条路径加引号）：
+若要同时灌入演示数据（3 家门店 × 7 天），编辑 `deploy_all.sql` 取消注释 `SOURCE 06_fixture_restaurant.sql` 一行，再执行。
+
+### 5.2 分步执行（也可逐库手动）
 
 ```powershell
 cd "<项目根>\src\yubi-backend-master"
+
+# 主库 yubi（核心 + 血缘 + AutoEDA）
+Get-Content .\sql\00_init_yubi.sql | mysql -u root -p
+Get-Content .\sql\01_init_yubi_lineage.sql | mysql -u root -p
+Get-Content .\sql\02_init_yubi_auto_eda.sql -Encoding UTF8 | mysql -u root -p
+
+# 餐饮库 yubi_restaurant
+Get-Content .\sql\03_init_yubi_restaurant.sql | mysql -u root -p
+Get-Content .\sql\05_seed_restaurant.sql | mysql -u root -p
+
+# 风险画像库 yubi_risk
+Get-Content .\sql\04_init_yubi_risk.sql | mysql -u root -p
+
+# 可选演示数据
+# Get-Content .\sql\06_fixture_restaurant.sql | mysql -u root -p
 ```
 
-导入（推荐在后端工程目录下执行，使用相对路径）：
+> 所有脚本均使用 `CREATE TABLE IF NOT EXISTS`，重复执行不报错。脚本内含 `CREATE DATABASE`，无需手动建库。
+
+### 5.3 从旧结构迁移（如果你之前有数据）
+
+若你之前所有表在 `yubi` 单库中，先执行 5.1 建新库，再执行清理脚本：
 
 ```powershell
-Get-Content .\sql\create_table.sql | mysql -u root -p yubi
-Get-Content .\sql\restaurant_schema.sql | mysql -u root -p yubi
-Get-Content .\sql\risk_portrait_schema.sql | mysql -u root -p yubi
-Get-Content .\sql\auto_eda_schema.sql -Encoding UTF8 | mysql -u root -p yubi
+cd "<项目根>\src\yubi-backend-master"
+Get-Content .\sql\cleanup_old_yubi.sql | mysql -u root -p
 ```
 
-> PowerShell 管道默认编码可能导致中文 COMMENT 乱码并报 1064；若失败，请用：`mysql -u root -p yubi --default-character-set=utf8mb4 -e "source D:/你的路径/sql/auto_eda_schema.sql"`（路径用正斜杠）。
+这会删除 `yubi` 库中已迁出的餐饮表、风险画像表、废弃 post 表。**仅在你确认旧数据不需要保留时执行。**
 
-> **InfoGain 自主探索** 依赖 `auto_eda_session` / `auto_eda_hypothesis` / `auto_eda_query_log` 三张表，未执行 `auto_eda_schema.sql` 时点击「开始自主探索」会报 SQL 错误。
-
-若使用量贩零食大屏等扩展标签，再执行：
-
-```powershell
-Get-Content .\sql\patch_snack_retail_screen_labels.sql | mysql -u root -p yubi
-```
-
-也可在 **MySQL Workbench** 或 **mysql 客户端** 中依次 `source` 上述文件的绝对路径；在 **CMD** 中可用：`mysql -u root -p yubi < sql\create_table.sql`（每条命令对应一个文件，顺序同上）。
+> 提示：旧数据如需保留，用 `RENAME TABLE yubi.xxx TO yubi_restaurant.xxx`（需同一 MySQL 实例），而不是 DROP。
 
 ---
 
@@ -260,7 +288,7 @@ npm run start:no-mock
 
 ## 八、快速自检清单
 
-1. MySQL 中已存在库 **`yubi`**，且已按顺序执行完所需 SQL。  
+1. MySQL 中存在 `yubi`、`yubi_restaurant`、`yubi_risk` 三个库，表数量正确（12 / 10 / 5）。  
 2. `application.yml` 中数据库账号与 JDBC URL 正确。  
 3. 后端监听 **18080**，能打开 **`/api/doc.html`**（dev 环境）。  
 4. 前端 **`npm run start:dev`** 或 **`start:no-mock`** 能打开页面，且接口不报跨域/连接拒绝（代理指向正确）。

@@ -23,7 +23,7 @@ const Settings: ProLayoutProps & {
   /** 禁用侧栏响应式折叠断点，避免窗口变窄时菜单被收起 */
   breakpoint: false,
   colorWeak: false,
-  title: '湖仓数智金融分析平台',
+  title: '零售经营智能分析平台',
   pwa: true,
   logo: '/logo.svg',
   iconfontUrl: '',

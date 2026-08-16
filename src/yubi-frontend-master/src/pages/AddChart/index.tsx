@@ -249,7 +249,7 @@ const AddChart: React.FC = () => {
     if (!option) return undefined;
     const next = JSON.parse(JSON.stringify(option || {}));
 
-    const normalizeAxis = (axis: any) => {
+    const normalizeAxis = (axis: any): any => {
       if (!axis) return axis;
       if (Array.isArray(axis)) return axis.map((a) => normalizeAxis(a));
       return {
@@ -368,7 +368,7 @@ const AddChart: React.FC = () => {
     };
     next.grid = Array.isArray(next.grid) ? next.grid.map((g: any) => normalizeGrid(g)) : normalizeGrid(next.grid);
 
-    const normalizeSeries = (series: any) => {
+    const normalizeSeries = (series: any): any => {
       if (!series) return series;
       if (Array.isArray(series)) return series.map((s) => normalizeSeries(s));
       return {

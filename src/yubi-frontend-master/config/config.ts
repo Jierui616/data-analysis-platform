@@ -73,7 +73,7 @@ export default defineConfig({
    * @name layout 插件
    * @doc https://umijs.org/docs/max/layout-menu
    */
-  title: '湖仓数智金融分析平台',
+  title: '零售经营智能分析平台',
   layout: {
     locale: true,
     ...defaultSettings,

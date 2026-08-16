@@ -39,6 +39,7 @@ type ResultMeta = {
   }>;
 };
 
+type IssueItem = NonNullable<ResultMeta['issues']>[number];
 type KpiTrend = 'up' | 'down' | 'flat';
 
 const extractNumberAfterKeyword = (text: string, keywords: string[]): number | undefined => {
@@ -204,7 +205,7 @@ const buildManagerSummary = (
   };
 };
 
-const buildStructuredAction = (issue: ResultMeta['issues'][number], rawText: string) => {
+const buildStructuredAction = (issue: IssueItem, rawText: string) => {
   const titleText = sanitizeChineseText(issue?.title);
   const actionText = sanitizeChineseText(issue?.action);
   const impactText = sanitizeChineseText(issue?.impact);
