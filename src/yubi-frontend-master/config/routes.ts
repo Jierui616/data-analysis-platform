@@ -14,21 +14,21 @@ export default [
   { path: '/bi_bigscreen', redirect: '/biz/bigscreen', hideInMenu: true },
   { path: '/insight-report/:sessionId', redirect: '/lineage/report/:sessionId', hideInMenu: true },
 
-  /** 智能分析（平铺菜单，无折叠分组） */
-  { path: '/ai/realtime', name: '实时生成', icon: 'thunderbolt', component: './AddChart' },
-  { path: '/ai/async', name: '异步生成', icon: 'clockCircle', component: './AddChartAsync' },
-  { path: '/ai/chat', name: '深度对话', icon: 'message', component: './DeepChat' },
+  /** 零售经营分析（平铺菜单，无折叠分组） */
+  { path: '/ai/realtime', name: '经营问数', icon: 'thunderbolt', component: './AddChart' },
+  { path: '/ai/async', name: '异步分析', icon: 'clockCircle', component: './AddChartAsync' },
+  { path: '/ai/chat', name: '分析对话', icon: 'message', component: './DeepChat' },
 
   /** 数据血缘（平铺：追踪 / 智能探索 / 探索记录） */
-  { path: '/lineage/trace', name: '血缘追踪', icon: 'apartment', component: './LineageCenter' },
-  { path: '/lineage/explore', name: '智能探索', icon: 'compass', component: './AutoEDA' },
+  { path: '/lineage/trace', name: '数据血缘', icon: 'apartment', component: './LineageCenter' },
+  { path: '/lineage/explore', name: '经营探索', icon: 'compass', component: './AutoEDA' },
   { path: '/lineage/history', name: '探索记录', icon: 'history', component: './ExplorationHistory' },
   { path: '/lineage/report/:sessionId', name: '探索报告', component: './InsightReport', hideInMenu: true },
 
   /** 数据与经营 */
-  { path: '/biz/charts', name: '图表管理', icon: 'pieChart', component: './MyChart' },
-  { path: '/biz/import', name: '成本排班导入', icon: 'upload', component: './DataImportCenter' },
-  { path: '/biz/bigscreen', name: '经营大屏', icon: 'dashboard', component: './BIOperationScreen' },
+  { path: '/biz/charts', name: '图表资产', icon: 'pieChart', component: './MyChart' },
+  { path: '/biz/import', name: '经营数据导入', icon: 'upload', component: './DataImportCenter' },
+  { path: '/biz/bigscreen', name: '经营驾驶舱', icon: 'dashboard', component: './BIOperationScreen' },
 
   { path: '/chart_result/:id', hideInMenu: true, component: './ChartResult' },
 

@@ -1,0 +1,10 @@
+.DS_Store
+node_modules/
+dist/
+.umi/
+.umi-production/
+target/
+*.iml
+*.ipr
+*.iws
+pnpm-lock.yaml
